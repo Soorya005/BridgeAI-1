@@ -1,3 +1,6 @@
+# Ignore all GGUF model files
+*.gguf
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
