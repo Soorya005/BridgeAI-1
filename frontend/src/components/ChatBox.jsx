@@ -19,16 +19,34 @@ export default function ChatBox() {
     const userMessage = { role: "user", text: input };
     setMessages((prev) => [...prev, userMessage]);
 
+    const currentInput = input;
     setInput("");
+
+    // Add an empty assistant message that will be filled with streaming content
+    const assistantMessageIndex = messages.length + 1;
+    setMessages((prev) => [...prev, { role: "assistant", text: "" }]);
+
     try {
-      const response = await sendMessage(sessionId, input);
-      const assistantMessage = { role: "assistant", text: response };
-      setMessages((prev) => [...prev, assistantMessage]);
+      await sendMessage(sessionId, currentInput, (chunk) => {
+        // Update the assistant message with each chunk
+        setMessages((prev) => {
+          const updated = [...prev];
+          updated[assistantMessageIndex] = {
+            role: "assistant",
+            text: updated[assistantMessageIndex].text + chunk,
+          };
+          return updated;
+        });
+      });
     } catch (err) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", text: "Error: Could not reach server." },
-      ]);
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[assistantMessageIndex] = {
+          role: "assistant",
+          text: "Error: Could not reach server.",
+        };
+        return updated;
+      });
     }
   };
 

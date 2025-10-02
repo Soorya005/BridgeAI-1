@@ -1,3 +1,6 @@
+# API usage log and model deets file
+cerebras_usage.jsonl
+
 # Ignore all GGUF model files
 *.gguf
 
