@@ -2,7 +2,7 @@ import axios from "axios";
 
 const API_BASE = "http://localhost:8000/api";
 
-export async function sendMessage(sessionId, query, onChunk) {
+export async function sendMessage(sessionId, query, isOnline, onChunk, onFallback, abortSignal) {
   const response = await fetch(`${API_BASE}/chat`, {
     method: "POST",
     headers: {
@@ -11,8 +11,9 @@ export async function sendMessage(sessionId, query, onChunk) {
     body: JSON.stringify({
       session_id: sessionId,
       query: query,
-      online: false,
+      online: isOnline,
     }),
+    signal: abortSignal, // Add abort signal support
   });
 
   if (!response.ok) {
@@ -38,7 +39,27 @@ export async function sendMessage(sessionId, query, onChunk) {
           }
           try {
             const parsed = JSON.parse(data);
-            if (parsed.content) {
+            
+            // Handle fallback notification
+            if (parsed.fallback) {
+              console.warn("Online model failed, falling back to offline model");
+              if (onFallback) {
+                onFallback();
+              }
+              // Continue to next chunk - the offline content will follow
+              continue;
+            }
+            
+            // Handle error
+            if (parsed.error) {
+              console.error("Stream error:", parsed.error);
+              if (parsed.content) {
+                onChunk(parsed.content);
+              }
+            }
+            
+            // Handle normal content
+            if (parsed.content && !parsed.error) {
               onChunk(parsed.content);
             }
           } catch (e) {

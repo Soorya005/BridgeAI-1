@@ -1,4 +1,8 @@
-# API usage log and model deets file
+# Node modules
+node_modules/
+*/node_modules/
+
+# API usage log and model deets log file
 cerebras_usage.jsonl
 
 # Ignore all GGUF model files

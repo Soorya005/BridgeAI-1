@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Any
 from dotenv import load_dotenv
 from cerebras.cloud.sdk import Cerebras
-from ..config import SYSTEM_PROMPT
+from ..config import SYSTEM_PROMPT_ONLINE
 from .memory import get_history, add_to_history
 
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +40,7 @@ def generate_online_response_stream(session_id: str, user_input: str):
     history = get_history(session_id)
     
     messages: List[Any] = [
-        {"role": "system", "content": SYSTEM_PROMPT}
+        {"role": "system", "content": SYSTEM_PROMPT_ONLINE}
     ]
     messages.extend(history)
     messages.append({"role": "user", "content": user_input})
@@ -49,8 +49,8 @@ def generate_online_response_stream(session_id: str, user_input: str):
         response = cerebras_client.chat.completions.create(
             model=CEREMODEL,
             messages=messages,  # type: ignore
-            temperature=0.7,
-            max_tokens=256,
+            temperature=0.8,
+            max_tokens=1024,
             stream=True
         )
         
