@@ -5,7 +5,8 @@ import Message from "./Message";
 import SettingsModal from "./SettingsModal";
 import NotificationProvider from "./NotificationProvider";
 import NotificationTray from "./NotificationTray";
-import { Settings, Bell } from "lucide-react";
+import EnhancementQueueTray from "./EnhancementQueueTray";
+import { Settings, Bell, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function ChatBox() {
@@ -19,6 +20,7 @@ export default function ChatBox() {
   const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark like Claude
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationTrayOpen, setNotificationTrayOpen] = useState(false);
+  const [queueTrayOpen, setQueueTrayOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [enhancementQueue, setEnhancementQueue] = useState(new Set());
   const [enhancingMessages, setEnhancingMessages] = useState(new Set());
@@ -86,39 +88,50 @@ export default function ChatBox() {
     const shouldAutoEnhance = autoEnhance !== null ? JSON.parse(autoEnhance) : true;
     
     // Check if we just went from offline to online
-    if (!previousOnlineStatus.current && isOnline && shouldAutoEnhance) {
-      const enhanceRecent = localStorage.getItem('enhanceRecent');
-      const shouldEnhanceRecent = enhanceRecent !== null ? JSON.parse(enhanceRecent) : true;
-      const maxMessages = parseInt(localStorage.getItem('maxMessagesToEnhance') || '5');
+    if (!previousOnlineStatus.current && isOnline) {
       
-      // Find offline messages that aren't already enhanced, queued, or being enhanced
-      const offlineMessages = messages
-        .map((msg, idx) => ({ ...msg, index: idx, id: `msg-${idx}` }))
-        .filter(msg => 
-          msg.role === 'assistant' && 
-          msg.source === 'offline' && 
-          !msg.isEnhanced &&
-          !enhancementQueue.has(`msg-${msg.index}`) &&
-          !enhancingMessages.has(`msg-${msg.index}`) // CRITICAL FIX: Don't queue if already enhancing
-        );
+      // CRITICAL FIX: First, process any manually queued messages
+      if (enhancementQueue.size > 0) {
+        const queuedMessageIds = Array.from(enhancementQueue);
+        console.log(`Going online with ${queuedMessageIds.length} manually queued messages, starting enhancement...`);
+        enhanceQueuedMessages(queuedMessageIds);
+      }
       
-      if (offlineMessages.length > 0) {
-        // Get messages to enhance based on settings
-        const messagesToEnhance = shouldEnhanceRecent 
-          ? offlineMessages.slice(-maxMessages)
-          : offlineMessages;
+      // Then, if auto-enhance is enabled, queue additional messages
+      if (shouldAutoEnhance) {
+        const enhanceRecent = localStorage.getItem('enhanceRecent');
+        const shouldEnhanceRecent = enhanceRecent !== null ? JSON.parse(enhanceRecent) : true;
+        const maxMessages = parseInt(localStorage.getItem('maxMessagesToEnhance') || '5');
         
-        if (messagesToEnhance.length > 0) {
-          // Add them to enhancement queue
-          const newQueue = new Set(enhancementQueue);
-          messagesToEnhance.forEach(msg => newQueue.add(msg.id));
-          setEnhancementQueue(newQueue);
+        // Find offline messages that aren't already enhanced, queued, or being enhanced
+        const offlineMessages = messages
+          .map((msg, idx) => ({ ...msg, index: idx, id: `msg-${idx}` }))
+          .filter(msg => 
+            msg.role === 'assistant' && 
+            msg.source === 'offline' && 
+            !msg.isEnhanced &&
+            !enhancementQueue.has(`msg-${msg.index}`) &&
+            !enhancingMessages.has(`msg-${msg.index}`) // CRITICAL FIX: Don't queue if already enhancing
+          );
+        
+        if (offlineMessages.length > 0) {
+          // Get messages to enhance based on settings
+          const messagesToEnhance = shouldEnhanceRecent 
+            ? offlineMessages.slice(-maxMessages)
+            : offlineMessages;
           
-          // Only show notification in tray, not toast (to avoid duplicates)
-          addNotification('info', 'Enhancement Queue', `Queued ${messagesToEnhance.length} message${messagesToEnhance.length > 1 ? 's' : ''} for enhancement`);
-          
-          // Start enhancing
-          enhanceQueuedMessages(messagesToEnhance.map(m => m.id));
+          if (messagesToEnhance.length > 0) {
+            // Add them to enhancement queue
+            const newQueue = new Set(enhancementQueue);
+            messagesToEnhance.forEach(msg => newQueue.add(msg.id));
+            setEnhancementQueue(newQueue);
+            
+            // Only show notification in tray, not toast (to avoid duplicates)
+            addNotification('info', 'Enhancement Queue', `Queued ${messagesToEnhance.length} message${messagesToEnhance.length > 1 ? 's' : ''} for enhancement`);
+            
+            // Start enhancing
+            enhanceQueuedMessages(messagesToEnhance.map(m => m.id));
+          }
         }
       }
     }
@@ -258,6 +271,15 @@ export default function ChatBox() {
     });
   };
 
+  const removeFromQueue = (messageId) => {
+    setEnhancementQueue(prev => {
+      const newQueue = new Set(prev);
+      newQueue.delete(messageId);
+      return newQueue;
+    });
+    toast('Removed from enhancement queue', { icon: '🗑️' });
+  };
+
   const handleSend = async () => {
     if (!input.trim() || isGenerating) return;
 
@@ -389,6 +411,16 @@ export default function ChatBox() {
         isDarkTheme={isDarkTheme}
         onNavigateToMessage={navigateToMessage}
         onRemoveNotification={removeNotification}
+      />
+      <EnhancementQueueTray
+        isOpen={queueTrayOpen}
+        onClose={() => setQueueTrayOpen(false)}
+        queuedMessages={enhancementQueue}
+        enhancingMessages={enhancingMessages}
+        messages={messages}
+        isDarkTheme={isDarkTheme}
+        onNavigateToMessage={navigateToMessage}
+        onRemoveFromQueue={removeFromQueue}
       />
       
       {/* Unified Sidebar - Seamlessly transitions between collapsed and expanded */}
@@ -547,6 +579,28 @@ export default function ChatBox() {
                 {isOnline ? "Online" : "Offline"}
               </span>
             </div>
+            
+            {/* Enhancement Queue Icon */}
+            <button
+              onClick={() => setQueueTrayOpen(true)}
+              className={`relative p-2 rounded-lg transition-colors ${
+                isDarkTheme 
+                  ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+              title="Enhancement Queue"
+            >
+              <Sparkles className="w-5 h-5" />
+              {(enhancementQueue.size > 0 || enhancingMessages.size > 0) && (
+                <span className={`absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center text-xs font-bold rounded-full ${
+                  enhancingMessages.size > 0
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-purple-500 text-white'
+                } px-1`}>
+                  {enhancementQueue.size + enhancingMessages.size}
+                </span>
+              )}
+            </button>
             
             {/* Notification bell */}
             <button
