@@ -1,7 +1,7 @@
 #type:ignore
 from llama_cpp import Llama
 from ..config import MODEL_PATH, N_CTX, SYSTEM_PROMPT_OFFLINE
-from .memory import add_to_history, get_history
+from .memory import add_to_history, get_offline_history
 import json
 import time
 
@@ -9,7 +9,8 @@ llm = Llama(model_path=MODEL_PATH, n_ctx=N_CTX)
 
 def generate_offline_response_stream(session_id: str, user_query: str):
     """Generator function that yields response chunks for streaming with buffering for smoother output."""
-    history = get_history(session_id)
+    # Use offline-optimized history instead of full history
+    history = get_offline_history(session_id)
     messages = [{"role": "system", "content": SYSTEM_PROMPT_OFFLINE}] + history + [{"role": "user", "content": user_query}]
     
     prompt = ""
@@ -57,8 +58,9 @@ def generate_offline_response_stream(session_id: str, user_query: str):
     # Send completion signal
     yield f"data: {json.dumps({'done': True})}\n\n"
     
-    add_to_history(session_id, "user", user_query)
-    add_to_history(session_id, "assistant", full_response.strip())
+    # Save to history with 'offline' source marker
+    add_to_history(session_id, "user", user_query, source="offline")
+    add_to_history(session_id, "assistant", full_response.strip(), source="offline")
 
 
 # # ----- Non-streaming function (backward compatibility) -----

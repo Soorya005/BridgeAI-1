@@ -2,6 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { sendMessage, clearChat } from "../api";
 import Message from "./Message";
+import SettingsModal from "./SettingsModal";
+import NotificationProvider from "./NotificationProvider";
+import NotificationTray from "./NotificationTray";
+import { Settings, Bell } from "lucide-react";
+import toast from "react-hot-toast";
 
 export default function ChatBox() {
   const [sessionId] = useState(uuidv4());
@@ -12,11 +17,246 @@ export default function ChatBox() {
   const [abortController, setAbortController] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark like Claude
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [notificationTrayOpen, setNotificationTrayOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [enhancementQueue, setEnhancementQueue] = useState(new Set());
+  const [enhancingMessages, setEnhancingMessages] = useState(new Set());
   const chatEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const previousOnlineStatus = useRef(isOnline);
+  const userScrolledUp = useRef(false);
+  const enhancementLockRef = useRef(new Set()); // CRITICAL FIX: Track messages being enhanced across renders
+
+  const addNotification = (type, title, message, messageId = null) => {
+    const now = new Date();
+    const timeString = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    
+    setNotifications(prev => [{
+      id: Date.now(),
+      type,
+      title,
+      message,
+      messageId,
+      time: timeString
+    }, ...prev].slice(0, 20)); // Keep only 20 most recent
+  };
+
+  const removeNotification = (notificationId) => {
+    setNotifications(prev => prev.filter(n => n.id !== notificationId));
+  };
+
+  const navigateToMessage = (messageId) => {
+    const element = document.getElementById(messageId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Briefly highlight the message
+      element.style.backgroundColor = 'rgba(249, 115, 22, 0.1)';
+      setTimeout(() => {
+        element.style.backgroundColor = '';
+      }, 2000);
+    }
+  };
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Only auto-scroll if user hasn't scrolled up
+    if (!userScrolledUp.current && chatEndRef.current) {
+      chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
   }, [messages]);
+
+  // Detect if user has scrolled up
+  useEffect(() => {
+    const chatContainer = chatContainerRef.current;
+    if (!chatContainer) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainer;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      userScrolledUp.current = !isNearBottom;
+    };
+
+    chatContainer.addEventListener('scroll', handleScroll);
+    return () => chatContainer.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Auto-enhancement when going from offline to online
+  useEffect(() => {
+    const autoEnhance = localStorage.getItem('autoEnhance');
+    const shouldAutoEnhance = autoEnhance !== null ? JSON.parse(autoEnhance) : true;
+    
+    // Check if we just went from offline to online
+    if (!previousOnlineStatus.current && isOnline && shouldAutoEnhance) {
+      const enhanceRecent = localStorage.getItem('enhanceRecent');
+      const shouldEnhanceRecent = enhanceRecent !== null ? JSON.parse(enhanceRecent) : true;
+      const maxMessages = parseInt(localStorage.getItem('maxMessagesToEnhance') || '5');
+      
+      // Find offline messages that aren't already enhanced, queued, or being enhanced
+      const offlineMessages = messages
+        .map((msg, idx) => ({ ...msg, index: idx, id: `msg-${idx}` }))
+        .filter(msg => 
+          msg.role === 'assistant' && 
+          msg.source === 'offline' && 
+          !msg.isEnhanced &&
+          !enhancementQueue.has(`msg-${msg.index}`) &&
+          !enhancingMessages.has(`msg-${msg.index}`) // CRITICAL FIX: Don't queue if already enhancing
+        );
+      
+      if (offlineMessages.length > 0) {
+        // Get messages to enhance based on settings
+        const messagesToEnhance = shouldEnhanceRecent 
+          ? offlineMessages.slice(-maxMessages)
+          : offlineMessages;
+        
+        if (messagesToEnhance.length > 0) {
+          // Add them to enhancement queue
+          const newQueue = new Set(enhancementQueue);
+          messagesToEnhance.forEach(msg => newQueue.add(msg.id));
+          setEnhancementQueue(newQueue);
+          
+          // Only show notification in tray, not toast (to avoid duplicates)
+          addNotification('info', 'Enhancement Queue', `Queued ${messagesToEnhance.length} message${messagesToEnhance.length > 1 ? 's' : ''} for enhancement`);
+          
+          // Start enhancing
+          enhanceQueuedMessages(messagesToEnhance.map(m => m.id));
+        }
+      }
+    }
+    
+    previousOnlineStatus.current = isOnline;
+  }, [isOnline, messages.length]); // CRITICAL FIX: Only depend on isOnline and messages.length to avoid infinite loops
+
+  const enhanceQueuedMessages = async (messageIds) => {
+    for (const msgId of messageIds) {
+      if (!isOnline) break; // Stop if we go offline
+      
+      // CRITICAL FIX: Check ref lock FIRST to prevent race conditions
+      if (enhancementLockRef.current.has(msgId)) {
+        console.log(`Enhancement already in progress for ${msgId}, skipping...`);
+        continue;
+      }
+      
+      const msgIndex = parseInt(msgId.split('-')[1]);
+      const message = messages[msgIndex];
+      
+      // CRITICAL FIX: Skip if already enhanced OR already enhancing OR not offline
+      if (!message || message.isEnhanced || message.source !== 'offline' || enhancingMessages.has(msgId)) {
+        console.log(`Skipping enhancement for ${msgId}: already processed or in progress`);
+        continue;
+      }
+      
+      // IMPORTANT: Acquire lock BEFORE doing anything else
+      enhancementLockRef.current.add(msgId);
+      
+      // IMPORTANT: Save the original offline text BEFORE we start enhancing
+      const originalOfflineText = message.text;
+      
+      // Mark as enhancing BEFORE making API call
+      setEnhancingMessages(prev => new Set([...prev, msgId]));
+      
+      try {
+        // Get the original query from the previous user message
+        const userMessageIndex = msgIndex - 1;
+        const userMessage = messages[userMessageIndex];
+        
+        if (!userMessage || userMessage.role !== 'user') {
+          throw new Error('Could not find original question');
+        }
+        
+        let enhancedText = '';
+        
+        // Send the same query but request online mode
+        await sendMessage(
+          sessionId,
+          userMessage.text,
+          true, // Force online
+          (chunk) => {
+            enhancedText += chunk;
+          },
+          () => {
+            // Fallback - keep original
+            throw new Error('Enhancement failed');
+          },
+          new AbortController().signal
+        );
+        
+        // Update the message with enhanced content
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[msgIndex] = {
+            ...updated[msgIndex],
+            isEnhanced: true,
+            enhancedText: enhancedText,
+            offlineText: originalOfflineText, // Use the saved original text
+            text: enhancedText, // Show enhanced by default
+            source: 'offline', // Keep offline source to show it was originally offline
+          };
+          return updated;
+        });
+        
+        // Remove from queue
+        setEnhancementQueue(prev => {
+          const newQueue = new Set(prev);
+          newQueue.delete(msgId);
+          return newQueue;
+        });
+        
+        // Add notification to tray AND show toast
+        addNotification('success', 'Response Enhanced', 'Click to view enhanced message', msgId);
+        toast.success('Response enhanced with more details', {
+          icon: '✨',
+        });
+        
+      } catch (error) {
+        console.error('Enhancement failed:', error);
+        addNotification('error', 'Enhancement Failed', 'Could not enhance response', msgId);
+        toast.error('Failed to enhance response', {
+          icon: '❌',
+        });
+      } finally {
+        // CRITICAL FIX: Release lock first
+        enhancementLockRef.current.delete(msgId);
+        
+        // Remove from enhancing set
+        setEnhancingMessages(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(msgId);
+          return newSet;
+        });
+      }
+      
+      // Small delay between enhancements
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  };
+
+  const toggleEnhancement = (messageId) => {
+    const msgIndex = parseInt(messageId.split('-')[1]);
+    const message = messages[msgIndex];
+    
+    // CRITICAL FIX: Prevent toggling enhancement for already enhanced or currently enhancing messages
+    if (message && (message.isEnhanced || enhancingMessages.has(messageId))) {
+      console.log(`Cannot toggle enhancement for ${messageId}: already enhanced or in progress`);
+      return;
+    }
+    
+    setEnhancementQueue(prev => {
+      const newQueue = new Set(prev);
+      if (newQueue.has(messageId)) {
+        newQueue.delete(messageId);
+        toast('Removed from enhancement queue', { icon: '🗑️' });
+      } else {
+        newQueue.add(messageId);
+        toast('Added to enhancement queue', { icon: '✅' });
+        
+        // If online, start enhancing immediately
+        if (isOnline) {
+          enhanceQueuedMessages([messageId]);
+        }
+      }
+      return newQueue;
+    });
+  };
 
   const handleSend = async () => {
     if (!input.trim() || isGenerating) return;
@@ -136,6 +376,21 @@ export default function ChatBox() {
 
   return (
     <div className={`flex h-screen ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
+      <NotificationProvider isDarkTheme={isDarkTheme} />
+      <SettingsModal 
+        isOpen={settingsOpen} 
+        onClose={() => setSettingsOpen(false)} 
+        isDarkTheme={isDarkTheme}
+      />
+      <NotificationTray
+        isOpen={notificationTrayOpen}
+        onClose={() => setNotificationTrayOpen(false)}
+        notifications={notifications}
+        isDarkTheme={isDarkTheme}
+        onNavigateToMessage={navigateToMessage}
+        onRemoveNotification={removeNotification}
+      />
+      
       {/* Unified Sidebar - Seamlessly transitions between collapsed and expanded */}
       <div className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 ease-in-out ${
         isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
@@ -175,55 +430,67 @@ export default function ChatBox() {
 
         {/* Bottom Section - Mode and Theme toggles */}
         <div className={`${sidebarOpen ? 'p-3 space-y-3' : 'p-2 space-y-2'}`}>
-          {/* Mode Toggle */}
+          {/* Mode Toggle - Sleek Design */}
           <button
             onClick={() => setIsOnline(!isOnline)}
-            className={`w-full flex items-center ${sidebarOpen ? 'gap-3 px-3 py-2 justify-between' : 'justify-center p-3'} rounded-lg transition-all ${
+            className={`group w-full flex items-center ${sidebarOpen ? 'gap-3 px-4 py-3 justify-between' : 'justify-center p-3'} rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
               isOnline 
                 ? isDarkTheme
-                  ? "bg-green-900 text-green-200 border border-green-700 hover:bg-green-800" 
-                  : "bg-green-100 text-green-800 border border-green-200 hover:bg-green-200"
+                  ? "bg-gradient-to-r from-green-900 to-emerald-900 text-green-100 shadow-lg shadow-green-900/50 hover:shadow-green-800/60 border border-green-700/50" 
+                  : "bg-gradient-to-r from-green-50 to-emerald-50 text-green-800 shadow-md shadow-green-200/50 hover:shadow-green-300/60 border border-green-200"
                 : isDarkTheme
-                  ? "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
-                  : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
+                  ? "bg-gradient-to-r from-gray-700 to-gray-800 text-gray-300 shadow-lg shadow-gray-900/50 hover:shadow-gray-800/60 border border-gray-600/50"
+                  : "bg-gradient-to-r from-gray-50 to-slate-50 text-gray-700 shadow-md shadow-gray-200/50 hover:shadow-gray-300/60 border border-gray-200"
             }`}
             title={!sidebarOpen ? (isOnline ? "Online Mode" : "Offline Mode") : ""}
           >
-            <span className="flex items-center gap-2">
-              <span className="text-lg flex-shrink-0">{isOnline ? "🌐" : "📱"}</span>
+            <span className="flex items-center gap-2.5">
+              <span className={`text-xl flex-shrink-0 transition-transform duration-300 group-hover:scale-110 ${isOnline ? 'animate-pulse' : ''}`}>
+                {isOnline ? "🌐" : "📱"}
+              </span>
               {sidebarOpen && (
-                <span className="text-sm font-medium whitespace-nowrap">
+                <span className="text-sm font-semibold whitespace-nowrap">
                   {isOnline ? "Online" : "Offline"}
                 </span>
               )}
             </span>
             {sidebarOpen && (
-              <span className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                isOnline 
+                  ? isDarkTheme ? 'bg-green-800/50 text-green-300' : 'bg-green-200/60 text-green-700'
+                  : isDarkTheme ? 'bg-gray-600/50 text-gray-400' : 'bg-gray-200/60 text-gray-600'
+              } whitespace-nowrap font-medium`}>
                 {isOnline ? "Cerebras" : "Local"}
               </span>
             )}
           </button>
 
-          {/* Theme Toggle */}
+          {/* Theme Toggle - Sleek Design */}
           <button
             onClick={() => setIsDarkTheme(!isDarkTheme)}
-            className={`w-full flex items-center ${sidebarOpen ? 'gap-3 px-3 py-2 justify-between' : 'justify-center p-3'} rounded-lg transition-all ${
+            className={`group w-full flex items-center ${sidebarOpen ? 'gap-3 px-4 py-3 justify-between' : 'justify-center p-3'} rounded-xl transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] ${
               isDarkTheme
-                ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
-                : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
+                ? 'bg-gradient-to-r from-indigo-900/40 to-purple-900/40 hover:from-indigo-900/60 hover:to-purple-900/60 text-indigo-200 border border-indigo-700/50 shadow-lg shadow-indigo-900/30'
+                : 'bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100 text-amber-800 border border-amber-200 shadow-md shadow-amber-200/50'
             }`}
             title={!sidebarOpen ? (isDarkTheme ? "Dark Theme" : "Light Theme") : ""}
           >
-            <span className="flex items-center gap-2">
-              <span className="text-lg flex-shrink-0">{isDarkTheme ? "🌙" : "☀️"}</span>
+            <span className="flex items-center gap-2.5">
+              <span className="text-xl flex-shrink-0 transition-transform duration-300 group-hover:rotate-[360deg]">
+                {isDarkTheme ? "🌙" : "☀️"}
+              </span>
               {sidebarOpen && (
-                <span className="text-sm font-medium whitespace-nowrap">
+                <span className="text-sm font-semibold whitespace-nowrap">
                   {isDarkTheme ? "Dark" : "Light"}
                 </span>
               )}
             </span>
             {sidebarOpen && (
-              <span className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
+              <span className={`text-xs px-2 py-1 rounded-full ${
+                isDarkTheme 
+                  ? 'bg-indigo-800/40 text-indigo-300' 
+                  : 'bg-amber-200/60 text-amber-700'
+              } whitespace-nowrap font-medium`}>
                 Theme
               </span>
             )}
@@ -253,41 +520,73 @@ export default function ChatBox() {
             </h1>
           </div>
           
-          <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full transition-all ${
-            isDarkTheme 
-              ? isOnline 
-                ? 'bg-green-900/30 border border-green-700/50' 
-                : 'bg-gray-700/50 border border-gray-600/50'
-              : isOnline
-                ? 'bg-green-50 border border-green-200'
-                : 'bg-gray-100 border border-gray-200'
-          }`}>
-            <span className={`relative flex h-2.5 w-2.5`}>
-              {isOnline && (
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              )}
-              <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
-                isOnline ? 'bg-green-500' : isDarkTheme ? 'bg-gray-400' : 'bg-gray-500'
-              }`}></span>
-            </span>
-            <span className={`text-sm font-medium ${
+          <div className="flex items-center gap-3">
+            {/* Status indicator */}
+            <div className={`flex items-center gap-2.5 px-3 py-1.5 rounded-full transition-all ${
               isDarkTheme 
-                ? isOnline ? 'text-green-300' : 'text-gray-400'
-                : isOnline ? 'text-green-700' : 'text-gray-600'
+                ? isOnline 
+                  ? 'bg-green-900/30 border border-green-700/50' 
+                  : 'bg-gray-700/50 border border-gray-600/50'
+                : isOnline
+                  ? 'bg-green-50 border border-green-200'
+                  : 'bg-gray-100 border border-gray-200'
             }`}>
-              {isOnline ? "Online" : "Offline"}
-            </span>
+              <span className={`relative flex h-2.5 w-2.5`}>
+                {isOnline && (
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                )}
+                <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+                  isOnline ? 'bg-green-500' : isDarkTheme ? 'bg-gray-400' : 'bg-gray-500'
+                }`}></span>
+              </span>
+              <span className={`text-sm font-medium ${
+                isDarkTheme 
+                  ? isOnline ? 'text-green-300' : 'text-gray-400'
+                  : isOnline ? 'text-green-700' : 'text-gray-600'
+              }`}>
+                {isOnline ? "Online" : "Offline"}
+              </span>
+            </div>
+            
+            {/* Notification bell */}
+            <button
+              onClick={() => setNotificationTrayOpen(true)}
+              className={`relative p-2 rounded-lg transition-colors ${
+                isDarkTheme 
+                  ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+              title="Notifications"
+            >
+              <Bell className="w-5 h-5" />
+              {notifications.length > 0 && (
+                <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+              )}
+            </button>
+            
+            {/* Settings button */}
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className={`p-2 rounded-lg transition-colors ${
+                isDarkTheme 
+                  ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' 
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+              title="Settings"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
         {/* Chat messages */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-6">
                 <span className="text-white text-2xl font-bold">🌉</span>
               </div>
-              <h2 className={`text-2xl font-semibold mb-3 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Good evening, User</h2>
+              <h2 className={`text-2xl font-semibold mb-3 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Welcome to BridgeAI</h2>
               <p className={`max-w-md ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
                 How can I help you today?
               </p>
@@ -318,7 +617,21 @@ export default function ChatBox() {
           ) : (
             <div className="max-w-3xl mx-auto px-4 py-8">
               {messages.map((msg, idx) => (
-                <Message key={idx} role={msg.role} text={msg.text} source={msg.source} fallback={msg.fallback} isDarkTheme={isDarkTheme} />
+                <Message 
+                  key={idx} 
+                  role={msg.role} 
+                  text={msg.text} 
+                  source={msg.source} 
+                  fallback={msg.fallback} 
+                  isDarkTheme={isDarkTheme}
+                  messageId={`msg-${idx}`}
+                  isQueuedForEnhancement={enhancementQueue.has(`msg-${idx}`)}
+                  isEnhanced={msg.isEnhanced}
+                  isEnhancing={enhancingMessages.has(`msg-${idx}`)}
+                  onToggleEnhancement={toggleEnhancement}
+                  enhancedText={msg.enhancedText}
+                  offlineText={msg.offlineText}
+                />
               ))}
               <div ref={chatEndRef} />
             </div>
@@ -353,27 +666,28 @@ export default function ChatBox() {
                   style={{ minHeight: '48px', maxHeight: '200px' }}
                 />
                 
-                {/* Send/Stop button */}
+                {/* Send/Stop button - Sleek Design */}
                 <button
                   onClick={isGenerating ? handleStop : handleSend}
                   disabled={!input.trim() && !isGenerating}
-                  className={`absolute right-3 bottom-3 p-2 rounded-md transition-all ${
+                  className={`absolute right-3 bottom-3 p-2.5 rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 ${
                     isGenerating
-                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      ? "bg-gradient-to-r from-red-500 to-rose-500 hover:from-red-600 hover:to-rose-600 text-white shadow-lg shadow-red-500/50 hover:shadow-red-600/60 animate-pulse"
                       : input.trim()
-                      ? "bg-orange-500 hover:bg-orange-600 text-white"
+                      ? "bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white shadow-md shadow-orange-500/50 hover:shadow-orange-600/60"
                       : isDarkTheme
-                      ? "bg-gray-600 text-gray-500 cursor-not-allowed"
+                      ? "bg-gray-700 text-gray-600 cursor-not-allowed"
                       : "bg-gray-200 text-gray-400 cursor-not-allowed"
                   }`}
+                  title={isGenerating ? "Stop generation" : "Send message"}
                 >
                   {isGenerating ? (
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <rect x="6" y="8" width="12" height="12" rx="1"/>
+                    <svg className="w-4 h-4 transition-transform duration-300" fill="currentColor" viewBox="0 0 24 24">
+                      <rect x="6" y="6" width="12" height="12" rx="2"/>
                     </svg>
                   ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    <svg className="w-4 h-4 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                     </svg>
                   )}
                 </button>

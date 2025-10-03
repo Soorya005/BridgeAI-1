@@ -90,9 +90,9 @@ def generate_online_response_stream(session_id: str, user_input: str):
                     f"Got: {model_used}"
                 )
         
-        
-        add_to_history(session_id, "user", user_input)
-        add_to_history(session_id, "assistant", full_response.strip())
+        # Save to history with 'online' source marker
+        add_to_history(session_id, "user", user_input, source="online")
+        add_to_history(session_id, "assistant", full_response.strip(), source="online")
 
     except Exception as e:
         logger.error(f"Cerebras API error: {e}")
