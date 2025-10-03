@@ -136,139 +136,98 @@ export default function ChatBox() {
 
   return (
     <div className={`flex h-screen ${isDarkTheme ? 'bg-gray-900 text-white' : 'bg-white text-gray-900'}`}>
-      {/* Collapsed Sidebar - Icon buttons only */}
-      {!sidebarOpen && (
-        <div className={`w-14 transition-all duration-300 ${
-          isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
-        } border-r flex flex-col items-center py-4`}>
-          {/* New Chat Button */}
-          <button
-            onClick={handleClear}
-            className={`w-10 h-10 flex items-center justify-center mb-2 ${
-              isDarkTheme 
-                ? 'text-gray-300 hover:bg-gray-700' 
-                : 'text-gray-600 hover:bg-gray-200'
-            } rounded-md transition-colors`}
-            title="New chat"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-          </button>
-
-          <div className="flex-1"></div>
-
-          {/* Mode Switch Button */}
-          <button
-            onClick={() => setIsOnline(!isOnline)}
-            className={`w-10 h-10 flex items-center justify-center mb-2 ${
-              isOnline 
-                ? isDarkTheme
-                  ? "bg-green-900 text-green-200 hover:bg-green-800" 
-                  : "bg-green-100 text-green-800 hover:bg-green-200"
-                : isDarkTheme
-                  ? "text-gray-300 hover:bg-gray-700"
-                  : "text-gray-600 hover:bg-gray-200"
-            } rounded-md transition-colors`}
-            title={isOnline ? "Switch to Offline" : "Switch to Online"}
-          >
-            <span className="text-lg">{isOnline ? "🌐" : "📱"}</span>
-          </button>
-
-          {/* Theme Toggle Button */}
-          <button
-            onClick={() => setIsDarkTheme(!isDarkTheme)}
-            className={`w-10 h-10 flex items-center justify-center ${
-              isDarkTheme
-                ? 'text-gray-300 hover:bg-gray-700'
-                : 'text-gray-600 hover:bg-gray-200'
-            } rounded-md transition-colors`}
-            title={isDarkTheme ? "Switch to Light Theme" : "Switch to Dark Theme"}
-          >
-            <span className="text-lg">{isDarkTheme ? "🌙" : "☀️"}</span>
-          </button>
-        </div>
-      )}
-
-      {/* Sidebar - Claude style */}
-      <div className={`${sidebarOpen ? 'w-80' : 'w-0'} transition-all duration-300 ease-in-out ${
+      {/* Unified Sidebar - Seamlessly transitions between collapsed and expanded */}
+      <div className={`${sidebarOpen ? 'w-64' : 'w-16'} transition-all duration-300 ease-in-out ${
         isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
       } border-r flex flex-col overflow-hidden`}>
-        <div className={`w-80 transition-opacity duration-300 ${sidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-          <div className={`p-4 border-b ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
+        
+        {/* Top Section - New Chat */}
+        <div className="p-3">
           <button
             onClick={handleClear}
-            className={`w-full flex items-center gap-3 px-4 py-3 ${
+            className={`w-full flex items-center ${sidebarOpen ? 'gap-3 px-4 py-3 justify-start' : 'justify-center p-3'} ${
               isDarkTheme 
                 ? 'bg-gray-700 border-gray-600 hover:border-gray-500 text-gray-200 hover:text-white hover:bg-gray-600' 
                 : 'bg-white border-gray-300 hover:border-gray-400 text-gray-700 hover:text-gray-900'
-            } border rounded-lg transition-colors text-sm font-medium`}
+            } border rounded-lg transition-all text-sm font-medium`}
+            title={!sidebarOpen ? "New chat" : ""}
           >
-            <span className="text-lg">+</span>
-            New chat
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            {sidebarOpen && <span className="whitespace-nowrap">New chat</span>}
           </button>
         </div>
-        
-        {/* <div className="flex-1 p-4">
-          <div className={`text-xs font-semibold ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wide mb-3`}>
-            Chats
-          </div>
-          {/* Chat history would go here *
-          <div className={`text-sm ${isDarkTheme ? 'text-gray-500' : 'text-gray-500'}`}>
-            No previous chats
-          </div>
-        </div> */}
 
-        {/* Mode toggle in sidebar */}
-        <div className={`p-4 border-t ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
-          <div className={`text-xs font-semibold ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wide mb-3`}>
-            Mode
+        {/* Middle Section - Navigation items (Chats, Projects, etc.) */}
+        {sidebarOpen && (
+          <div className="flex-1 px-3">
+            <div className={`text-xs font-semibold ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wide mb-2 px-2`}>
+              Chats
+            </div>
+            <div className={`text-sm ${isDarkTheme ? 'text-gray-500' : 'text-gray-500'} px-2`}>
+              No previous chats
+            </div>
           </div>
+        )}
+        
+        {!sidebarOpen && <div className="flex-1"></div>}
+
+        {/* Bottom Section - Mode and Theme toggles */}
+        <div className={`${sidebarOpen ? 'p-3 space-y-3' : 'p-2 space-y-2'}`}>
+          {/* Mode Toggle */}
           <button
             onClick={() => setIsOnline(!isOnline)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
+            className={`w-full flex items-center ${sidebarOpen ? 'gap-3 px-3 py-2 justify-between' : 'justify-center p-3'} rounded-lg transition-all ${
               isOnline 
                 ? isDarkTheme
-                  ? "bg-green-900 text-green-200 border border-green-700" 
-                  : "bg-green-100 text-green-800 border border-green-200"
+                  ? "bg-green-900 text-green-200 border border-green-700 hover:bg-green-800" 
+                  : "bg-green-100 text-green-800 border border-green-200 hover:bg-green-200"
                 : isDarkTheme
-                  ? "bg-gray-700 text-gray-300 border border-gray-600"
-                  : "bg-gray-100 text-gray-700 border border-gray-200"
+                  ? "bg-gray-700 text-gray-300 border border-gray-600 hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200"
             }`}
+            title={!sidebarOpen ? (isOnline ? "Online Mode" : "Offline Mode") : ""}
           >
             <span className="flex items-center gap-2">
-              <span>{isOnline ? "🌐" : "📱"}</span>
-              <span className="text-sm font-medium">
-                {isOnline ? "Online" : "Offline"}
+              <span className="text-lg flex-shrink-0">{isOnline ? "🌐" : "📱"}</span>
+              {sidebarOpen && (
+                <span className="text-sm font-medium whitespace-nowrap">
+                  {isOnline ? "Online" : "Offline"}
+                </span>
+              )}
+            </span>
+            {sidebarOpen && (
+              <span className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
+                {isOnline ? "Cerebras" : "Local"}
               </span>
-            </span>
-            <span className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
-              {isOnline ? "Cerebras" : "Local"}
-            </span>
+            )}
           </button>
-        </div>
 
-        {/* Theme toggle at bottom of sidebar */}
-        <div className={`p-4 border-t ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}>
+          {/* Theme Toggle */}
           <button
             onClick={() => setIsDarkTheme(!isDarkTheme)}
-            className={`w-full flex items-center justify-between px-3 py-2 rounded-md transition-colors ${
+            className={`w-full flex items-center ${sidebarOpen ? 'gap-3 px-3 py-2 justify-between' : 'justify-center p-3'} rounded-lg transition-all ${
               isDarkTheme
                 ? 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-200'
             }`}
+            title={!sidebarOpen ? (isDarkTheme ? "Dark Theme" : "Light Theme") : ""}
           >
             <span className="flex items-center gap-2">
-              <span>{isDarkTheme ? "🌙" : "☀️"}</span>
-              <span className="text-sm font-medium">
-                {isDarkTheme ? "Dark" : "Light"}
+              <span className="text-lg flex-shrink-0">{isDarkTheme ? "🌙" : "☀️"}</span>
+              {sidebarOpen && (
+                <span className="text-sm font-medium whitespace-nowrap">
+                  {isDarkTheme ? "Dark" : "Light"}
+                </span>
+              )}
+            </span>
+            {sidebarOpen && (
+              <span className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} whitespace-nowrap`}>
+                Theme
               </span>
-            </span>
-            <span className={`text-xs ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
-              Theme
-            </span>
+            )}
           </button>
-        </div>
         </div>
       </div>
 
