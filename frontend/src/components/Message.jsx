@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { Sparkles, XCircle, CheckCircle, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import logo from '../assets/logo.png';
 
 export default function Message({ 
   role, 
@@ -29,8 +30,8 @@ export default function Message({
           isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-gray-50 border-gray-200'
         } border rounded-lg p-4 mb-4`}>
           <div className="flex items-start gap-4">
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-white text-sm font-medium">U</span>
+            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-base font-medium">U</span>
             </div>
             <div className="flex-1 pt-1">
               <div className={`${isDarkTheme ? 'text-gray-100' : 'text-gray-900'} whitespace-pre-wrap leading-relaxed`}>
@@ -46,10 +47,10 @@ export default function Message({
   return (
     <div className="mb-8" id={messageId}>
       <div className="flex items-start gap-4">
-        <div className="w-8 h-8 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center flex-shrink-0">
+        <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden bg-white shadow-sm">
           {isGenerating ? (
             <svg 
-              className="animate-spin h-5 w-5 text-white" 
+              className="animate-spin h-6 w-6 text-orange-500" 
               xmlns="http://www.w3.org/2000/svg" 
               fill="none" 
               viewBox="0 0 24 24"
@@ -69,7 +70,11 @@ export default function Message({
               />
             </svg>
           ) : (
-            <span className="text-white text-sm font-bold">🌉</span>
+            <img 
+              src={logo} 
+              alt="BridgeAI" 
+              className="w-full h-full object-cover scale-110"
+            />
           )}
         </div>
         <div className="flex-1">

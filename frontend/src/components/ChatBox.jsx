@@ -8,6 +8,7 @@ import NotificationTray from "./NotificationTray";
 import EnhancementQueueTray from "./EnhancementQueueTray";
 import { Settings, Bell, Sparkles } from "lucide-react";
 import toast from "react-hot-toast";
+import logo from "../assets/logo.png";
 
 export default function ChatBox() {
   const [sessionId] = useState(uuidv4());
@@ -494,19 +495,8 @@ export default function ChatBox() {
           </button>
         </div>
 
-        {/* Middle Section - Navigation items (Chats, Projects, etc.) */}
-        {sidebarOpen && (
-          <div className="flex-1 px-3">
-            <div className={`text-xs font-semibold ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'} uppercase tracking-wide mb-2 px-2`}>
-              Chats
-            </div>
-            <div className={`text-sm ${isDarkTheme ? 'text-gray-500' : 'text-gray-500'} px-2`}>
-              No previous chats
-            </div>
-          </div>
-        )}
-        
-        {!sidebarOpen && <div className="flex-1"></div>}
+        {/* Middle Section - Spacer to keep buttons at bottom */}
+        <div className="flex-1"></div>
 
         {/* Bottom Section - Mode and Theme toggles */}
         <div className={`${sidebarOpen ? 'p-3 space-y-3' : 'p-2 space-y-2'}`}>
@@ -685,8 +675,12 @@ export default function ChatBox() {
         <div className="flex-1 overflow-y-auto" ref={chatContainerRef}>
           {messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
-              <div className="w-16 h-16 bg-gradient-to-br from-orange-400 to-orange-500 rounded-full flex items-center justify-center mb-6">
-                <span className="text-white text-2xl font-bold">🌉</span>
+              <div className="w-24 h-24 rounded-full flex items-center justify-center mb-6 overflow-hidden bg-white shadow-lg">
+                <img 
+                  src={logo} 
+                  alt="BridgeAI" 
+                  className="w-full h-full object-cover scale-110"
+                />
               </div>
               <h2 className={`text-2xl font-semibold mb-3 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Welcome to BridgeAI</h2>
               <p className={`max-w-md ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
