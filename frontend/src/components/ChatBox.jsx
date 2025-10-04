@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
+import { useNavigate } from "react-router-dom";
 import { sendMessage, clearChat } from "../api";
 import Message from "./Message";
 import SettingsModal from "./SettingsModal";
 import NotificationProvider from "./NotificationProvider";
 import NotificationTray from "./NotificationTray";
 import EnhancementQueueTray from "./EnhancementQueueTray";
-import { Settings, Bell, Sparkles } from "lucide-react";
+import { Settings, Bell, Sparkles, ArrowLeft } from "lucide-react";
 import toast from "react-hot-toast";
 import logo from "../assets/logo.png";
 
 export default function ChatBox() {
+  const navigate = useNavigate();
   const [sessionId] = useState(uuidv4());
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -18,7 +20,7 @@ export default function ChatBox() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [abortController, setAbortController] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isDarkTheme, setIsDarkTheme] = useState(true); // Default to dark like Claude
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [notificationTrayOpen, setNotificationTrayOpen] = useState(false);
   const [queueTrayOpen, setQueueTrayOpen] = useState(false);
@@ -29,7 +31,7 @@ export default function ChatBox() {
   const chatContainerRef = useRef(null);
   const previousOnlineStatus = useRef(isOnline);
   const userScrolledUp = useRef(false);
-  const enhancementLockRef = useRef(new Set()); // CRITICAL FIX: Track messages being enhanced across renders
+  const enhancementLockRef = useRef(new Set()); 
 
   const addNotification = (type, title, message, messageId = null) => {
     const now = new Date();
@@ -575,6 +577,15 @@ export default function ChatBox() {
           isDarkTheme ? 'border-gray-700' : 'border-gray-200'
         }`}>
           <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/')}
+              className={`p-2 ${
+                isDarkTheme ? 'hover:bg-gray-700 text-gray-400 hover:text-gray-200' : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              } rounded-lg transition-colors group`}
+              title="Back to landing page"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:-translate-x-1 transition-transform" />
+            </button>
             <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className={`p-2 ${
