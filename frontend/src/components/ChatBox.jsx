@@ -90,54 +90,96 @@ export default function ChatBox() {
     // Check if we just went from offline to online
     if (!previousOnlineStatus.current && isOnline) {
       
-      // CRITICAL FIX: First, process any manually queued messages
-      if (enhancementQueue.size > 0) {
-        const queuedMessageIds = Array.from(enhancementQueue);
-        console.log(`Going online with ${queuedMessageIds.length} manually queued messages, starting enhancement...`);
-        enhanceQueuedMessages(queuedMessageIds);
+      // CRITICAL FIX: Wait for any ongoing generation to complete before enhancing
+      if (isGenerating) {
+        console.log('Generation in progress, will enhance after completion');
+        previousOnlineStatus.current = isOnline;
+        return;
       }
       
-      // Then, if auto-enhance is enabled, queue additional messages
-      if (shouldAutoEnhance) {
-        const enhanceRecent = localStorage.getItem('enhanceRecent');
-        const shouldEnhanceRecent = enhanceRecent !== null ? JSON.parse(enhanceRecent) : true;
-        const maxMessages = parseInt(localStorage.getItem('maxMessagesToEnhance') || '5');
+      // CRITICAL FIX: Use setTimeout to avoid setState during render
+      setTimeout(() => {
+        // First, process any manually queued messages
+        if (enhancementQueue.size > 0) {
+          const queuedMessageIds = Array.from(enhancementQueue);
+          console.log(`Going online with ${queuedMessageIds.length} manually queued messages, starting enhancement...`);
+          enhanceQueuedMessages(queuedMessageIds);
+        }
         
-        // Find offline messages that aren't already enhanced, queued, or being enhanced
-        const offlineMessages = messages
-          .map((msg, idx) => ({ ...msg, index: idx, id: `msg-${idx}` }))
-          .filter(msg => 
-            msg.role === 'assistant' && 
-            msg.source === 'offline' && 
-            !msg.isEnhanced &&
-            !enhancementQueue.has(`msg-${msg.index}`) &&
-            !enhancingMessages.has(`msg-${msg.index}`) // CRITICAL FIX: Don't queue if already enhancing
-          );
-        
-        if (offlineMessages.length > 0) {
-          // Get messages to enhance based on settings
-          const messagesToEnhance = shouldEnhanceRecent 
-            ? offlineMessages.slice(-maxMessages)
-            : offlineMessages;
+        // Then, if auto-enhance is enabled, queue additional messages
+        if (shouldAutoEnhance) {
+          const enhanceRecent = localStorage.getItem('enhanceRecent');
+          const shouldEnhanceRecent = enhanceRecent !== null ? JSON.parse(enhanceRecent) : true;
+          const maxMessages = parseInt(localStorage.getItem('maxMessagesToEnhance') || '5');
           
-          if (messagesToEnhance.length > 0) {
-            // Add them to enhancement queue
-            const newQueue = new Set(enhancementQueue);
-            messagesToEnhance.forEach(msg => newQueue.add(msg.id));
-            setEnhancementQueue(newQueue);
+          // Find offline messages that aren't already enhanced, queued, or being enhanced
+          const offlineMessages = messages
+            .map((msg, idx) => ({ ...msg, index: idx, id: `msg-${idx}` }))
+            .filter(msg => 
+              msg.role === 'assistant' && 
+              msg.source === 'offline' && 
+              !msg.isEnhanced &&
+              !enhancementQueue.has(`msg-${msg.index}`) &&
+              !enhancingMessages.has(`msg-${msg.index}`) // CRITICAL FIX: Don't queue if already enhancing
+            );
+          
+          if (offlineMessages.length > 0) {
+            // Get messages to enhance based on settings
+            const messagesToEnhance = shouldEnhanceRecent 
+              ? offlineMessages.slice(-maxMessages)
+              : offlineMessages;
             
-            // Only show notification in tray, not toast (to avoid duplicates)
-            addNotification('info', 'Enhancement Queue', `Queued ${messagesToEnhance.length} message${messagesToEnhance.length > 1 ? 's' : ''} for enhancement`);
-            
-            // Start enhancing
-            enhanceQueuedMessages(messagesToEnhance.map(m => m.id));
+            if (messagesToEnhance.length > 0) {
+              // Add them to enhancement queue
+              const newQueue = new Set(enhancementQueue);
+              messagesToEnhance.forEach(msg => newQueue.add(msg.id));
+              setEnhancementQueue(newQueue);
+              
+              // Only show notification in tray, not toast (to avoid duplicates)
+              addNotification('info', 'Enhancement Queue', `Queued ${messagesToEnhance.length} message${messagesToEnhance.length > 1 ? 's' : ''} for enhancement`);
+              
+              // Start enhancing
+              enhanceQueuedMessages(messagesToEnhance.map(m => m.id));
+            }
           }
         }
-      }
+      }, 0);
     }
     
     previousOnlineStatus.current = isOnline;
-  }, [isOnline, messages.length]); // CRITICAL FIX: Only depend on isOnline and messages.length to avoid infinite loops
+  }, [isOnline]); // CRITICAL FIX: Only depend on isOnline to prevent multiple triggers
+
+  // CRITICAL FIX: Trigger enhancement when generation completes while online
+  useEffect(() => {
+    const autoEnhance = localStorage.getItem('autoEnhance');
+    const shouldAutoEnhance = autoEnhance !== null ? JSON.parse(autoEnhance) : true;
+    
+    // If generation just finished AND we're online AND auto-enhance is on
+    if (!isGenerating && isOnline && shouldAutoEnhance && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      const lastMessageId = `msg-${messages.length - 1}`;
+      
+      // Check if the last message is an offline assistant message that needs enhancement
+      if (lastMessage.role === 'assistant' && 
+          lastMessage.source === 'offline' && 
+          !lastMessage.isEnhanced &&
+          !enhancementQueue.has(lastMessageId) &&
+          !enhancingMessages.has(lastMessageId)) {
+        
+        console.log('Generation completed, auto-enhancing last offline message...');
+        
+        setTimeout(() => {
+          // Add to queue
+          const newQueue = new Set(enhancementQueue);
+          newQueue.add(lastMessageId);
+          setEnhancementQueue(newQueue);
+          
+          // Start enhancing
+          enhanceQueuedMessages([lastMessageId]);
+        }, 500); // Small delay to ensure message is fully saved
+      }
+    }
+  }, [isGenerating]); // Trigger when isGenerating changes
 
   const enhanceQueuedMessages = async (messageIds) => {
     for (const msgId of messageIds) {
@@ -204,6 +246,11 @@ export default function ChatBox() {
             text: enhancedText, // Show enhanced by default
             source: 'offline', // Keep offline source to show it was originally offline
           };
+          console.log('Enhanced message updated:', {
+            isEnhanced: updated[msgIndex].isEnhanced,
+            hasEnhancedText: !!updated[msgIndex].enhancedText,
+            hasOfflineText: !!updated[msgIndex].offlineText
+          });
           return updated;
         });
         
@@ -403,6 +450,7 @@ export default function ChatBox() {
         isOpen={settingsOpen} 
         onClose={() => setSettingsOpen(false)} 
         isDarkTheme={isDarkTheme}
+        setIsDarkTheme={setIsDarkTheme}
       />
       <NotificationTray
         isOpen={notificationTrayOpen}
@@ -685,6 +733,7 @@ export default function ChatBox() {
                   onToggleEnhancement={toggleEnhancement}
                   enhancedText={msg.enhancedText}
                   offlineText={msg.offlineText}
+                  isGenerating={isGenerating && idx === messages.length - 1 && msg.role === 'assistant'}
                 />
               ))}
               <div ref={chatEndRef} />

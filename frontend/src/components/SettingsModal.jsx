@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { X, Settings } from 'lucide-react';
+import { X, Settings, Sun, Moon } from 'lucide-react';
 
-export default function SettingsModal({ isOpen, onClose, isDarkTheme }) {
+export default function SettingsModal({ isOpen, onClose, isDarkTheme, setIsDarkTheme }) {
   const [autoEnhance, setAutoEnhance] = useState(() => {
     const saved = localStorage.getItem('autoEnhance');
     return saved !== null ? JSON.parse(saved) : true;
@@ -63,6 +63,39 @@ export default function SettingsModal({ isOpen, onClose, isDarkTheme }) {
 
         {/* Content */}
         <div className="p-6 space-y-6">
+          {/* Theme setting */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                <h3 className="font-medium">Theme</h3>
+                <p className={`text-sm mt-1 ${isDarkTheme ? 'text-gray-400' : 'text-gray-600'}`}>
+                  Choose your preferred color scheme
+                </p>
+              </div>
+              <button
+                onClick={() => setIsDarkTheme(!isDarkTheme)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ml-4 ${
+                  isDarkTheme ? 'bg-indigo-600' : 'bg-amber-500'
+                }`}
+              >
+                <span
+                  className={`flex h-4 w-4 transform items-center justify-center rounded-full bg-white transition-transform ${
+                    isDarkTheme ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                >
+                  {isDarkTheme ? (
+                    <Moon className="w-3 h-3 text-indigo-600" />
+                  ) : (
+                    <Sun className="w-3 h-3 text-amber-500" />
+                  )}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className={`border-t ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`} />
+
           {/* Auto-enhance setting */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
