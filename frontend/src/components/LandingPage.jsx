@@ -625,7 +625,7 @@ const LandingPage = () => {
               },
               {
                 name: 'Shahan A',
-                roles: ['Docker Orchestration'],
+                roles: ['Backend Assistant'],
                 email: 'team3@example.com',
                 linkedin: '#',
                 github: '#'
