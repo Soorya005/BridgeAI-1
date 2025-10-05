@@ -1,4 +1,4 @@
-# 🌉 BridgeAI
+#  BridgeAI
 
 **An Online-First AI Assistant with Automatic Offline Fallback**
 
@@ -8,38 +8,38 @@ BridgeAI is a **hybrid AI assistant** that prioritizes fast cloud AI (Cerebras) 
 
 ---
 
-## 🎯 The Problem We Solve
+##  The Problem We Solve
 
 Ever had an AI assistant fail because your internet dropped? **BridgeAI solves this.**
 
-- **Traditional AI**: Breaks when internet fails ❌
-- **BridgeAI**: Automatically switches to local model ✅
+- **Traditional AI**: Breaks when internet fails 
+- **BridgeAI**: Automatically switches to local model 
 
 Perfect for:
-- 🌍 Remote/rural areas with unreliable internet
-- ✈️ Working while traveling (airplane mode)
-- 🔒 Privacy-sensitive tasks (use offline mode)
-- � Cost-conscious users (reduce API costs)
-- 🏥 Critical applications (healthcare, emergency services)
+- Remote/rural areas with unreliable internet
+-  Working while traveling (airplane mode)
+-  Privacy-sensitive tasks (use offline mode)
+-  Cost-conscious users (reduce API costs)
+-  Critical applications (healthcare, emergency services)
 
 ---
 
-## ✨ Key Features
+##  Key Features
 
-- 🌐 **Online-First**: Fast cloud AI (Cerebras llama-3.3-70b) when connected
-- 🔄 **Automatic Fallback**: Seamlessly switches to local model when internet drops
-- 🤖 **Zero Manual Switching**: Detects network changes automatically
-- 🐳 **Docker Containerized**: Professional deployment, one-command setup
-- 🎯 **MCP Gateway**: Smart routing layer using Model Context Protocol
-- � **Privacy Option**: Fully functional offline mode (data stays local)
-- ⚡ **Always Responsive**: Never shows "No connection" errors
+-  **Online-First**: Fast cloud AI (Cerebras llama-3.3-70b) when connected
+-  **Automatic Fallback**: Seamlessly switches to local model when internet drops
+-  **Zero Manual Switching**: Detects network changes automatically
+-  **Docker Containerized**: Professional deployment, one-command setup
+-  **MCP Gateway**: Smart routing layer using Model Context Protocol
+-  **Privacy Option**: Fully functional offline mode (data stays local)
+-  **Always Responsive**: Never shows "No connection" errors
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
-### For Hackathon Judges 🏆
-📖 **[See FOR_JUDGES.md for complete testing guide](FOR_JUDGES.md)**
+### For Hackathon Judges 
+**[See FOR_JUDGES.md for complete testing guide](FOR_JUDGES.md)**
 
 ### Quick Setup (Windows)
 
@@ -71,7 +71,7 @@ Perfect for:
 
 ---
 
-## 🏗️ Architecture
+##  Architecture
 
 ```
 User's Computer (Docker Container)
@@ -115,7 +115,7 @@ Network Detection:
 
 ---
 
-## 📦 What's Included
+##  What's Included
 
 - ✅ **3 Dockerfiles** (Frontend, Backend, Gateway)
 - ✅ **docker-compose.yml** - Orchestrates all services
@@ -127,7 +127,7 @@ Network Detection:
 
 ---
 
-## 🎯 Use Cases
+##  Use Cases
 
 Perfect for:
 - 🌍 **Remote/Rural Areas** - Limited internet connectivity
@@ -139,7 +139,7 @@ Perfect for:
 
 ---
 
-## 📊 System Requirements
+##  System Requirements
 
 ### Minimum
 - Docker Desktop installed
@@ -154,20 +154,20 @@ Perfect for:
 
 ---
 
-## 🧪 Testing Network Switching
+##  Testing Network Switching
 
 1. Start the app with internet connection
 2. Send a message → Uses **Cerebras** (fast response)
 3. Disable WiFi/Internet
 4. Send another message → Automatically switches to **Local Model**
 5. Re-enable internet → Switches back to **Cerebras**
-6. Previous offline messages auto-enhance ✨
+6. Previous offline messages auto-enhance 
 
 **No manual toggle needed!**
 
 ---
 
-## 📝 Commands
+##  Commands
 
 ```bash
 # Start application
@@ -188,25 +188,25 @@ docker-compose up --build
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
 
 ---
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
-## 👥 Team Cyber_Samurais
+##  Team Cyber_Samurais
 
 Built for **WeMakeDevs FutureStack GenAI Hackathon 2025**
 
 ---
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **Cerebras** for the lightning-fast AI API
 - **Meta** for the Llama 2 model
