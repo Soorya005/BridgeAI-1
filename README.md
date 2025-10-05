@@ -51,9 +51,6 @@ BridgeAI bridges this gap with three integrated layers:
 ---
 
 ## System Architecture
-## System Architecture
-
-```mermaid
 graph TD
     A[User Sends Query] --> B[BridgeAI Receives Request]
     B --> C{Internet Available?}
@@ -61,14 +58,6 @@ graph TD
     C -- No --> E[LLaMA Offline Container]
     D --> F[Return Enhanced Answer to MCP]
     E --> F[Return Offline Answer to MCP]
-    F --> G[User Receives Response]
-
-
-**Key Components:**  
-- **LLaMA Container** → Offline inference  
-- **Cerebras API Connector** → Online generative reasoning  
-- **MCP Gateway** → Orchestrator, metadata manager, offline-first logic  
-
 ---
 
 ## Workflow & User Scenario
