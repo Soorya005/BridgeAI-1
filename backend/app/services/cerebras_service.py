@@ -13,12 +13,18 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 load_dotenv()
-API_KEY = os.getenv("CEREBRAS_API_KEY")
-if not API_KEY:
-    raise ValueError("Missing CEREBRAS_API_KEY.")
+API_KEY = os.getenv("CEREBRAS_API_KEY", "")
 
-cerebras_client = Cerebras(api_key=API_KEY)
-CEREMODEL = "llama-4-maverick-17b-128e-instruct"
+# Initialize client only if API key is available
+# In Docker setup, MCP Gateway handles Cerebras calls, so this is optional
+cerebras_client = None
+if API_KEY:
+    cerebras_client = Cerebras(api_key=API_KEY)
+    logger.info("Cerebras client initialized")
+else:
+    logger.warning("CEREBRAS_API_KEY not found - MCP Gateway will handle online requests")
+
+CEREMODEL = "llama-3.3-70b"
 
 def log_api_usage(session_id: str, usage_info: Any, model_used: str):
     """Log API usage to a file for later analysis."""
@@ -37,6 +43,13 @@ def log_api_usage(session_id: str, usage_info: Any, model_used: str):
 
 def generate_online_response_stream(session_id: str, user_input: str):
     """Generator function for streaming Cerebras responses."""
+    global cerebras_client
+    
+    # Check if client is available
+    if cerebras_client is None:
+        logger.error("Cerebras client not initialized - API key missing")
+        raise ValueError("Cerebras API key not configured. Please set CEREBRAS_API_KEY environment variable.")
+    
     history = get_history(session_id)
     
     messages: List[Any] = [

@@ -1,6 +1,31 @@
 import axios from "axios";
 
 const API_BASE = "http://localhost:8000/api";
+const MCP_GATEWAY = "http://localhost:8080";
+
+/**
+ * Check network connectivity status via MCP Gateway
+ * Returns: { online: boolean, cerebras_available: boolean }
+ */
+export async function checkNetworkStatus() {
+  try {
+    const response = await fetch(`${MCP_GATEWAY}/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(5000)
+    });
+    const data = await response.json();
+    return {
+      online: data.online || false,
+      cerebras_available: data.cerebras_available || false
+    };
+  } catch (error) {
+    console.error("Network check failed:", error);
+    return {
+      online: false,
+      cerebras_available: false
+    };
+  }
+}
 
 export async function sendMessage(sessionId, query, isOnline, onChunk, onFallback, abortSignal) {
   const response = await fetch(`${API_BASE}/chat`, {

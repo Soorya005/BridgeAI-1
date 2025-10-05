@@ -4,7 +4,7 @@ import { X, Settings, Sun, Moon } from 'lucide-react';
 export default function SettingsModal({ isOpen, onClose, isDarkTheme, setIsDarkTheme }) {
   const [autoEnhance, setAutoEnhance] = useState(() => {
     const saved = localStorage.getItem('autoEnhance');
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   });
 
   const [enhanceRecent, setEnhanceRecent] = useState(() => {

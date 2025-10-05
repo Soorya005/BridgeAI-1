@@ -85,7 +85,7 @@ export default function Message({
                 isEnhanced && showingEnhanced ? "bg-purple-500" : source === "online" ? "bg-green-500" : "bg-gray-400"
               }`}></span>
               <span className={`text-xs font-medium ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
-                {isEnhanced && showingEnhanced ? "Enhanced Response" : source === "online" ? "Cerebras Llama-4" : "Local Llama-2"}
+                {isEnhanced && showingEnhanced ? "Enhanced Response" : source === "online" ? "Cerebras Llama-3.3" : "Local Llama-2"}
                 {fallback && " (Fallback)"}
               </span>
               

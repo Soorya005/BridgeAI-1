@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { ArrowRight, Github, Mail, Linkedin, ExternalLink, WifiOff, Zap, Brain, MessageSquare, Crown, Bug, Lock, Ghost, ArrowUp } from 'lucide-react';
+import { ArrowRight, Github, Mail, Linkedin, ExternalLink, WifiOff, Zap, Brain, MessageSquare, Crown, Bug, Lock, Ghost, ArrowUp, Sparkles } from 'lucide-react';
 import cerebrasLogo from '../assets/cerebras-logo.webp';
 import dockerLogo from '../assets/docker-logo.a363136f.svg';
 import metaLogo from '../assets/meta-logo.72ee86ee.svg';
@@ -357,7 +357,7 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
+                whileHover={{ scale: 1.05 }}
                 className="group flex flex-col items-center text-center space-y-3 p-6 rounded-xl bg-gradient-to-br from-purple-500/10 to-transparent border border-purple-500/20 hover:border-purple-500/50 transition-all"
               >
                 <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/50 group-hover:shadow-purple-500/70 transition-all">
@@ -372,14 +372,14 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
+                whileHover={{ scale: 1.05 }}
                 className="group flex flex-col items-center text-center space-y-3 p-6 rounded-xl bg-gradient-to-br from-blue-500/10 to-transparent border border-blue-500/20 hover:border-blue-500/50 transition-all"
               >
                 <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/50 group-hover:shadow-blue-500/70 transition-all">
-                  <Zap className="w-6 h-6 text-white" />
+                  <WifiOff className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-gray-200 font-semibold text-lg">Beautiful Interface</p>
-                <p className="text-gray-400 text-sm">Sleek, modern design with smooth animations and responsive layouts</p>
+                <p className="text-gray-200 font-semibold text-lg">Works Offline</p>
+                <p className="text-gray-400 text-sm">Fully functional even without internet connectivity</p>
               </motion.div>
               
               <motion.div 
@@ -387,14 +387,14 @@ const LandingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
                 viewport={{ once: true }}
-                whileHover={{ y: -5 }}
+                whileHover={{ scale: 1.05 }}
                 className="group flex flex-col items-center text-center space-y-3 p-6 rounded-xl bg-gradient-to-br from-pink-500/10 to-transparent border border-pink-500/20 hover:border-pink-500/50 transition-all"
               >
                 <div className="w-12 h-12 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl flex items-center justify-center shadow-lg shadow-pink-500/50 group-hover:shadow-pink-500/70 transition-all">
-                  <MessageSquare className="w-6 h-6 text-white" />
+                  <Sparkles className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-gray-200 font-semibold text-lg">Real-time Streaming</p>
-                <p className="text-gray-400 text-sm">Watch responses appear naturally as the AI generates them</p>
+                <p className="text-gray-200 font-semibold text-lg">Enhance Feature</p>
+                <p className="text-gray-400 text-sm">Offline responses can be queued to be enhanced once internet resumes</p>
               </motion.div>
             </div>
           </motion.div>
@@ -481,7 +481,7 @@ const LandingPage = () => {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 max-w-7xl mx-auto">
             {/* Cerebras Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -508,7 +508,7 @@ const LandingPage = () => {
                 {/* Description */}
                 <div className="text-gray-300 leading-relaxed text-left space-y-3">
                   <p>
-                    <span className="font-semibold text-orange-300">Cloud-Powered Intelligence</span> - BridgeAI utilizes Cerebras API to access the Llama-4 Maverick model, serving as your sophisticated online brain for comprehensive, detailed responses
+                    <span className="font-semibold text-orange-300">Cloud-Powered Intelligence</span> - BridgeAI utilizes Cerebras API to access the Llama-3.3-70B model, serving as your sophisticated online brain for comprehensive, detailed responses
                   </p>
                   <p>
                     <span className="font-semibold text-orange-300">Lightning-Fast Inference</span> - Cerebras' world-class AI infrastructure delivers near-instantaneous inference, transforming complex queries into intelligent answers with minimal latency
@@ -543,7 +543,7 @@ const LandingPage = () => {
                 {/* Description */}
                 <div className="text-gray-300 leading-relaxed text-left space-y-3">
                   <p>
-                    <span className="font-semibold text-blue-300">Online Brain</span> - Our primary intelligence engine leverages Llama-4 Maverick through Cerebras API, delivering exceptionally smart and instantaneous responses with cutting-edge performance
+                    <span className="font-semibold text-blue-300">Online Brain</span> - Our primary intelligence engine leverages Llama-3.3-70B through Cerebras API, delivering exceptionally smart and instantaneous responses with cutting-edge performance
                   </p>
                   <p>
                     <span className="font-semibold text-blue-300">Offline Brain</span> - A quantized, chat-optimized Llama-2 model serves as our offline brain, ensuring continuous functionality even without internet connectivity, albeit with measured constraints
@@ -552,8 +552,8 @@ const LandingPage = () => {
               </div>
             </motion.div>
 
-            {/* Docker Card - Temporarily Hidden */}
-            {/* <motion.div
+            {/* Docker Card */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -582,7 +582,7 @@ const LandingPage = () => {
                   </p>
                 </div>
               </div>
-            </motion.div> */}
+            </motion.div>
           </div>
         </div>
       </section>
@@ -750,7 +750,7 @@ const LandingPage = () => {
             viewport={{ once: true }}
             className="text-gray-300 text-lg mb-8 max-w-2xl mx-auto"
           >
-            Talk about a game changer. Try BridgeAI now!
+            Thanks for reviewing our work. Try BridgeAI now!
           </motion.p>
           <motion.button
             initial={{ opacity: 0, y: 20 }}
