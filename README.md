@@ -51,13 +51,22 @@ BridgeAI bridges this gap with three integrated layers:
 ---
 
 ## System Architecture
-graph TD
-    A[User Sends Query] --> B[BridgeAI Receives Request]
-    B --> C{Internet Available?}
-    C -- Yes --> D[Cerebras API for online inference]
-    C -- No --> E[LLaMA Offline Container]
-    D --> F[Return Enhanced Answer to MCP]
-    E --> F[Return Offline Answer to MCP]
+┌─────────────────────────────────────────┐
+│           User Interface Layer          │
+└─────────────────┬───────────────────────┘
+                  │
+┌─────────────────▼───────────────────────┐
+│          MCP Gateway Layer              │
+│  - Orchestration                        │
+│  - Routing Logic                        │
+│  - Metadata Management                  │
+└─────────┬───────────────┬───────────────┘
+          │               │
+    ┌─────▼─────┐   ┌────▼──────┐
+    │ Cerebras  │   │  LLaMA    │
+    │   API     │   │ Container │
+    │ (Online)  │   │ (Offline) │
+    └───────────┘   └───────────┘
 ---
 
 ## Workflow & User Scenario
