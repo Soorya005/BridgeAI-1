@@ -51,7 +51,18 @@ BridgeAI bridges this gap with three integrated layers:
 ---
 
 ## System Architecture
-![BridgeAI Architecture](https://www.mermaidchart.com/app/projects/42e7c236-172f-43b1-95dc-024c55132cbf/diagrams/20a7d86d-6233-4c2a-bf70-5ff1e179f921/version/v0.1/edit)
+## System Architecture
+
+```mermaid
+graph TD
+    A[User Sends Query] --> B[BridgeAI Receives Request]
+    B --> C{Internet Available?}
+    C -- Yes --> D[Cerebras API for online inference]
+    C -- No --> E[LLaMA Offline Container]
+    D --> F[Return Enhanced Answer to MCP]
+    E --> F[Return Offline Answer to MCP]
+    F --> G[User Receives Response]
+
 
 **Key Components:**  
 - **LLaMA Container** → Offline inference  
