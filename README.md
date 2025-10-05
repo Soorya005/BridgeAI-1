@@ -1,218 +1,152 @@
-# 🌉 BridgeAI
+# BridgeAI: Hybrid Knowledge Assistant for Low-Connectivity Environments
 
-**An Online-First AI Assistant with Automatic Offline Fallback**
+**Tagline:** Offline-first AI assistant that becomes smarter online  
 
-BridgeAI is a **hybrid AI assistant** that prioritizes fast cloud AI (Cerebras) when internet is available, and seamlessly falls back to a local model when the connection drops - ensuring you **never lose access** to AI assistance.
-
-*Built by Team Cyber_Samurais for WeMakeDevs FutureStack GenAI Hackathon '25*
+BridgeAI is a hybrid AI assistant designed to deliver instant, offline responses while leveraging cloud-based intelligence for complex queries when internet connectivity is available. It ensures knowledge accessibility even in low-connectivity environments.  
 
 ---
 
-## 🎯 The Problem We Solve
-
-Ever had an AI assistant fail because your internet dropped? **BridgeAI solves this.**
-
-- **Traditional AI**: Breaks when internet fails ❌
-- **BridgeAI**: Automatically switches to local model ✅
-
-Perfect for:
-- 🌍 Remote/rural areas with unreliable internet
-- ✈️ Working while traveling (airplane mode)
-- 🔒 Privacy-sensitive tasks (use offline mode)
-- � Cost-conscious users (reduce API costs)
-- 🏥 Critical applications (healthcare, emergency services)
-
----
-
-## ✨ Key Features
-
-- 🌐 **Online-First**: Fast cloud AI (Cerebras llama-3.3-70b) when connected
-- 🔄 **Automatic Fallback**: Seamlessly switches to local model when internet drops
-- 🤖 **Zero Manual Switching**: Detects network changes automatically
-- 🐳 **Docker Containerized**: Professional deployment, one-command setup
-- 🎯 **MCP Gateway**: Smart routing layer using Model Context Protocol
-- � **Privacy Option**: Fully functional offline mode (data stays local)
-- ⚡ **Always Responsive**: Never shows "No connection" errors
+## Table of Contents
+1. [Problem Statement](#problem-statement)  
+2. [Solution Overview](#solution-overview)  
+3. [System Architecture](#system-architecture)  
+4. [Workflow & User Scenario](#workflow--user-scenario)  
+5. [Handling Internet Outages](#handling-internet-outages)  
+6. [Demo & Hackathon Presentation](#demo--hackathon-presentation)  
+7. [Unique Features](#unique-features)  
+8. [Suggested Use Cases](#suggested-use-cases)  
+9. [Quick Start / Installation](#quick-start--installation)  
+10. [Folder Structure](#folder-structure)  
+11. [Future Enhancements](#future-enhancements)  
+12. [References](#references)
 
 ---
 
-## 🚀 Quick Start
-
-### For Hackathon Judges 🏆
-📖 **[See FOR_JUDGES.md for complete testing guide](FOR_JUDGES.md)**
-
-### Quick Setup (Windows)
-
-1. **Install Prerequisites**
-   - Docker Desktop: https://www.docker.com/products/docker-desktop/
-   - Cerebras API Key (FREE): https://cloud.cerebras.ai/
-
-2. **Run setup**
-   ```bash
-   setup.bat
-   ```
-   - Downloads AI model (~4GB, one-time)
-   - Prompts for API key
-   - Configures environment
-
-3. **Start the app**
-   ```bash
-   start.bat
-   ```
-   - Builds Docker images (first run only, ~5-10 min)
-   - Opens browser automatically
-
-4. **Test the hybrid feature!**
-   - Chat while online → fast responses
-   - Disconnect WiFi → keeps working (offline mode)
-   - Reconnect WiFi → switches back automatically
-
-📖 **[See QUICKSTART.md for detailed instructions](QUICKSTART.md)**
+## Problem Statement
+- Communities such as students, researchers, NGOs, and local governments often face slow or unreliable internet connectivity.  
+- Current AI assistants are either:  
+  - **Fully cloud-based** → require fast, reliable internet.  
+  - **Fully local** → limited intelligence and cannot handle large datasets.  
+- **Gap:** There is no hybrid, offline-first assistant that works on minimal hardware but leverages advanced AI when possible.
 
 ---
 
-## 🏗️ Architecture
+## Solution Overview
+BridgeAI bridges this gap with three integrated layers:
 
-```
-User's Computer (Docker Container)
-│
-├── Frontend (React + Vite) :5173
-├── Backend (FastAPI) :8000
-├── MCP Gateway (Network Router) :8080
-└── Local Model (Llama 2 - 7B)
+1. **Offline Layer (LLaMA)**  
+   - Small, quantized version of LLaMA.  
+   - Handles lightweight queries, simple facts, FAQs.  
+   - Runs entirely locally in a Docker container.  
 
-Network Detection:
-├── ONLINE  → Routes to Cerebras API (fast, cloud-based)
-└── OFFLINE → Routes to Local GGUF Model (private, always available)
-```
+2. **Online Layer (Cerebras API)**  
+   - Cloud-hosted model for complex questions, large-context reasoning, and advanced computation.  
+   - Enhances answers when internet is available.  
 
----
-
-## 🛠️ Technology Stack
-
-### Frontend
-- **React** + Vite
-- **TailwindCSS** for styling
-- **Lucide Icons**
-- Auto network detection
-
-### Backend
-- **FastAPI** (Python)
-- **llama-cpp-python** for local inference
-- **Cerebras Cloud SDK** for online mode
-- Conversation memory management
-
-### MCP Gateway
-- Custom **Model Context Protocol** gateway
-- Automatic network detection
-- Intelligent routing between providers
-- Health monitoring
-
-### Infrastructure
-- **Docker** + Docker Compose
-- Microservices architecture
-- Container health checks
+3. **Docker MCP Gateway**  
+   - Orchestrates queries between offline and online layers.  
+   - Logs queries, caches responses, and handles offline fallback.  
+   - Packages everything into a portable, deployable container.  
 
 ---
 
-## 📦 What's Included
-
-- ✅ **3 Dockerfiles** (Frontend, Backend, Gateway)
-- ✅ **docker-compose.yml** - Orchestrates all services
-- ✅ **MCP Gateway** - Custom network-aware router
-- ✅ **Local Model** - Llama 2 7B (4-bit quantized)
-- ✅ **Auto-detection** - No manual mode switching
-- ✅ **Health checks** - Automatic service recovery
-- ✅ **Complete documentation**
+## System Architecture
+┌─────────────────────────────────────────┐
+<img width="2541" height="3840" alt="Untitled diagram _ Mermaid Chart-2025-10-05-105133" src="https://github.com/user-attachments/assets/c8bead61-beea-42fc-9798-8e4ffeffcbb4" />
 
 ---
 
-## 🎯 Use Cases
+## Workflow & User Scenario
+**Step 1: User Submits Query**  
+Example query:  
+> "Explain the environmental impact of microplastics on marine life and suggest mitigation strategies."
 
-Perfect for:
-- 🌍 **Remote/Rural Areas** - Limited internet connectivity
-- ✈️ **Travel** - Unreliable mobile connections
-- 🏥 **Healthcare** - Privacy-sensitive environments
-- 🎓 **Education** - Schools with poor connectivity
-- 🚢 **Maritime/Aviation** - Isolated environments
-- 💼 **Enterprise** - Air-gapped networks
+**Step 2: MCP Gateway Intercepts Query**  
+- Checks if internet is available.  
+- Checks if query has been cached before.  
+- Routes query: offline-first if no internet, online via Cerebras if available.  
 
----
+**Step 3: Offline Handling (LLaMA)**  
+- LLaMA provides instant, simplified responses from preloaded data.  
+- Response may be less detailed or approximate.  
+- Metadata marks this as an offline-limited answer.  
 
-## 📊 System Requirements
+**Step 4: Online Enhancement (Cerebras API)**  
+- Once internet is restored, MCP detects previously answered queries that were offline-limited.  
+- Sends them to Cerebras API for full processing.  
+- Caches detailed responses locally and marks them as “enhanced online response.”  
 
-### Minimum
-- Docker Desktop installed
-- 8 GB RAM
-- 15 GB free disk space
-- Windows 10/11, macOS, or Linux
-
-### Recommended
-- 16 GB RAM
-- 20 GB free disk space (SSD preferred)
-- 4+ CPU cores
-
----
-
-## 🧪 Testing Network Switching
-
-1. Start the app with internet connection
-2. Send a message → Uses **Cerebras** (fast response)
-3. Disable WiFi/Internet
-4. Send another message → Automatically switches to **Local Model**
-5. Re-enable internet → Switches back to **Cerebras**
-6. Previous offline messages auto-enhance ✨
-
-**No manual toggle needed!**
+**Step 5: User Receives Improved Answer**  
+- Users can see richer explanations, references, or structured guidance.  
+- System notifies: “Your question has been enhanced with additional insights.”  
 
 ---
 
-## 📝 Commands
+## Handling Internet Outages
+- Offline-only scenario:  
+  - LLaMA answers from preloaded data.  
+  - MCP logs queries needing later enhancement.  
+  - Users get instant responses even if simplified.  
+- When connectivity returns:  
+  - Cerebras API enriches previously limited answers.  
+  - Hybrid workflow ensures continuity.  
 
+---
+
+## Demo & Hackathon Presentation
+- **Offline Mode:** Demonstrate LLaMA providing instant answers.  
+- **Online Mode:** Show same query enhanced by Cerebras API.  
+- **MCP Logs & Metadata:** Visual demonstration adds “wow factor.”  
+- **Containerized Deployment:** Judges can run it on any laptop without installation hassles.  
+
+---
+
+## Unique Features
+- LLaMA = Offline survival brain.  
+- Cerebras = Cloud superbrain.  
+- Docker MCP = Orchestrator + metadata manager.  
+- Fully hybrid workflow = resilient, smart, portable, and judge-visible.  
+- Summarizes PDFs, reports, and large datasets.  
+- Tracks queries, logs, and enhanced responses intelligently.  
+
+---
+
+## Suggested Use Cases
+1. **Research Assistant (Students & NGOs)**  
+   - Offline: Curriculum, project briefs, or reports.  
+   - Online: Summaries, citations, next-step guidance.  
+
+2. **Education Assistant (Rural Schools)**  
+   - Offline: Subject Q&A, flashcards.  
+   - Online: Adaptive lesson plans, quizzes, concept explanations.  
+
+3. **Civic Knowledge Portal**  
+   - Offline: FAQs about schemes, forms, procedures.  
+   - Online: Tailored instructions, multi-source summaries, templates.  
+
+---
+
+## Quick Start / Installation
 ```bash
-# Start application
-docker-compose up
+# Clone repository
+git clone https://github.com/YourUsername/BridgeAI.git
+cd BridgeAI
 
-# Start in background
-docker-compose up -d
-
-# Stop application
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Rebuild after changes
+# Build and start containers
 docker-compose up --build
-```
+Access via local web interface or CLI.
 
----
+Use preloaded documents or upload your own datasets.
 
-## 🤝 Contributing
+Folder Structure
+bash
+Copy code
+BridgeAI/
+├─ backend/           # FastAPI / Cerebras API connectors
+├─ llama/             # LLaMA offline container
+├─ mcp_gateway/       # Docker MCP orchestrator
+├─ frontend/          # React + Tailwind UI
+├─ docs/              # Preloaded demo docs
+├─ docker-compose.yml
+└─ README.md
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-## 👥 Team Cyber_Samurais
-
-Built for **WeMakeDevs FutureStack GenAI Hackathon 2025**
-
----
-
-## 🙏 Acknowledgments
-
-- **Cerebras** for the lightning-fast AI API
-- **Meta** for the Llama 2 model
-- **Docker** for containerization technology
-- **FastAPI** & **React** communities
-
----
-
-**Made with ❤️ to bridge the digital divide**
