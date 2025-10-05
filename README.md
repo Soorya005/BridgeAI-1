@@ -75,14 +75,18 @@ flowchart TD
     C --> E[Response & Metadata Logged]
     D --> E[Response & Metadata Logged]
     E --> F[User Receives Answer]
+Sequence Overview
+User submits a query, which is received by the MCP Gateway.
 
+MCP Gateway determines whether the system is online or offline.
 
-### Sequence (brief)
+Online: Cerebras API handles the query.
 
-1. Frontend sends query to MCP Gateway (`POST /api/v1/query`).
-2. MCP Gateway checks network & cache and routes to Cerebras or Local model.
-3. Answer returned and labeled with `provider: online | offline` and stored in metadata.
-4. If offline answer is partial, MCP queues it for enhancement. When online, enhancer sends to Cerebras and updates cache.
+Offline: LLaMA local model handles the query.
+
+Response and metadata are logged, then returned to the user.
+
+For detailed architecture and workflow, see ARCHITECTURE.md.
 
 ---
 
