@@ -149,23 +149,5 @@ BridgeAI/
 ├─ docs/              # Preloaded demo docs
 ├─ docker-compose.yml
 └─ README.md
-Future Enhancements
-Automatic detection of internet connectivity inside MCP (remove manual switch).
 
-RAG integration for larger document sets.
 
-Multi-language support for education/civic use cases.
-
-Mobile app frontend.
-
-References
-LLaMA Paper
-
-Cerebras API
-
-MermaidJS Flowchart Tool
-
-Guri, M. et al., “GAIROSCOPE: Keystroke Inference via Gyroscope,” ACM CCS 2021.
-
-Takeaway:
-BridgeAI is a resilient, hybrid AI assistant that ensures instant offline answers and intelligent online enhancements — all packaged into a portable, hackathon-ready container.
