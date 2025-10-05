@@ -61,9 +61,12 @@ This README is the canonical GitHub entry for the project; additional documentat
 
 ---
 
-## Architecture & Workflow
 
-### Flowchart (Mermaid)
+
+### Architecture & Workflow
+
+#### System Flowchart
+
 ```mermaid
 flowchart TD
     A[User Query] --> B[MCP Gateway]
