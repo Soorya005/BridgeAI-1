@@ -1,218 +1,307 @@
-# 🌉 BridgeAI
+# BridgeAI
 
-**An Online-First AI Assistant with Automatic Offline Fallback**
+**An Online‑First AI Assistant with Automatic Offline Fallback**
 
-BridgeAI is a **hybrid AI assistant** that prioritizes fast cloud AI (Cerebras) when internet is available, and seamlessly falls back to a local model when the connection drops - ensuring you **never lose access** to AI assistance.
-
-*Built by Team Cyber_Samurais for WeMakeDevs FutureStack GenAI Hackathon '25*
+Built by **Team Cyber_Samurais** for WeMakeDevs FutureStack GenAI Hackathon '25
 
 ---
 
-## 🎯 The Problem We Solve
+## Tagline
 
-Ever had an AI assistant fail because your internet dropped? **BridgeAI solves this.**
-
-- **Traditional AI**: Breaks when internet fails ❌
-- **BridgeAI**: Automatically switches to local model ✅
-
-Perfect for:
-- 🌍 Remote/rural areas with unreliable internet
-- ✈️ Working while traveling (airplane mode)
-- 🔒 Privacy-sensitive tasks (use offline mode)
-- � Cost-conscious users (reduce API costs)
-- 🏥 Critical applications (healthcare, emergency services)
+BridgeAI prioritizes fast cloud inference (Cerebras) when internet is available and *seamlessly* falls back to a local model when connectivity drops — so users never lose access to AI assistance.
 
 ---
 
-## ✨ Key Features
+## Badges (suggested)
 
-- 🌐 **Online-First**: Fast cloud AI (Cerebras llama-3.3-70b) when connected
-- 🔄 **Automatic Fallback**: Seamlessly switches to local model when internet drops
-- 🤖 **Zero Manual Switching**: Detects network changes automatically
-- 🐳 **Docker Containerized**: Professional deployment, one-command setup
-- 🎯 **MCP Gateway**: Smart routing layer using Model Context Protocol
-- � **Privacy Option**: Fully functional offline mode (data stays local)
-- ⚡ **Always Responsive**: Never shows "No connection" errors
+* build: `![build](https://img.shields.io/badge/build-passing-brightgreen)`
+* license: `![license](https://img.shields.io/badge/license-MIT-blue)`
+* docker: `![docker](https://img.shields.io/badge/docker-ready-blue)`
 
 ---
 
-## 🚀 Quick Start
+## Table of contents
 
-### For Hackathon Judges 🏆
-📖 **[See FOR_JUDGES.md for complete testing guide](FOR_JUDGES.md)**
-
-### Quick Setup (Windows)
-
-1. **Install Prerequisites**
-   - Docker Desktop: https://www.docker.com/products/docker-desktop/
-   - Cerebras API Key (FREE): https://cloud.cerebras.ai/
-
-2. **Run setup**
-   ```bash
-   setup.bat
-   ```
-   - Downloads AI model (~4GB, one-time)
-   - Prompts for API key
-   - Configures environment
-
-3. **Start the app**
-   ```bash
-   start.bat
-   ```
-   - Builds Docker images (first run only, ~5-10 min)
-   - Opens browser automatically
-
-4. **Test the hybrid feature!**
-   - Chat while online → fast responses
-   - Disconnect WiFi → keeps working (offline mode)
-   - Reconnect WiFi → switches back automatically
-
-📖 **[See QUICKSTART.md for detailed instructions](QUICKSTART.md)**
+1. [Overview](#overview)
+2. [Key features](#key-features)
+3. [Architecture & Workflow](#architecture--workflow)
+4. [Quick Start (Windows)](#quick-start-windows)
+5. [Repo layout](#repo-layout)
+6. [Environment & .env example](#environment--env-example)
+7. [Docker & Deployment](#docker--deployment)
+8. [MCP Gateway API contract](#mcp-gateway-api-contract)
+9. [For Judges — Demo checklist](#for-judges---demo-checklist)
+10. [Contributing](#contributing)
+11. [Tests & Monitoring](#tests--monitoring)
+12. [Security & Privacy](#security--privacy)
+13. [Assets for documentation](#assets-for-documentation)
+14. [License & Acknowledgements](#license--acknowledgements)
 
 ---
 
-## 🏗️ Architecture
+## Overview
 
-```
-User's Computer (Docker Container)
-│
-├── Frontend (React + Vite) :5173
-├── Backend (FastAPI) :8000
-├── MCP Gateway (Network Router) :8080
-└── Local Model (Llama 2 - 7B)
+BridgeAI is a hybrid assistant that offers:
 
-Network Detection:
-├── ONLINE  → Routes to Cerebras API (fast, cloud-based)
-└── OFFLINE → Routes to Local GGUF Model (private, always available)
+* **Online-first**: uses Cerebras `llama-3.3-70b` via API for fast, high-quality responses when connected.
+* **Automatic fallback**: routes requests to a local quantized LLaMA model when network is unavailable.
+* **Enhancement**: offline responses are flagged and automatically reprocessed by Cerebras when connectivity returns; results are cached.
+
+This README is the canonical GitHub entry for the project; additional documentation files live in `/docs`.
+
+---
+
+## Key features
+
+* Online-first routing (Cerebras) + Local fallback (LLaMA 7B quantized)
+* Dockerized microservices (frontend, backend, mcp-gateway, local-model)
+* MCP Gateway: network-aware router, metadata logging, caching, enhancement queue
+* Zero-manual switching for users — automatic failure detection and seamless UX
+* Offline privacy mode: data stays local when desired
+
+---
+
+## Architecture & Workflow
+
+### Flowchart (Mermaid)
+
+```mermaid
+flowchart TD
+  A[User (Browser)] --> B[Frontend (React + Vite)]
+  B --> C[MCP Gateway (HTTP:8080)]
+  C -->|internet available| D[Cerebras API (cloud)]
+  C -->|no internet| E[Local Model (llama-2/gguf)]
+  D --> F[Response & Cache]
+  E --> F
+  F --> B
+  F --> G[Metadata store (cache/logs)]
+  G --> C
+  C --> H[Enhancer Worker]
+  H --> D
+  H --> G
 ```
 
----
+### Sequence (brief)
 
-## 🛠️ Technology Stack
-
-### Frontend
-- **React** + Vite
-- **TailwindCSS** for styling
-- **Lucide Icons**
-- Auto network detection
-
-### Backend
-- **FastAPI** (Python)
-- **llama-cpp-python** for local inference
-- **Cerebras Cloud SDK** for online mode
-- Conversation memory management
-
-### MCP Gateway
-- Custom **Model Context Protocol** gateway
-- Automatic network detection
-- Intelligent routing between providers
-- Health monitoring
-
-### Infrastructure
-- **Docker** + Docker Compose
-- Microservices architecture
-- Container health checks
+1. Frontend sends query to MCP Gateway (`POST /api/v1/query`).
+2. MCP Gateway checks network & cache and routes to Cerebras or Local model.
+3. Answer returned and labeled with `provider: online | offline` and stored in metadata.
+4. If offline answer is partial, MCP queues it for enhancement. When online, enhancer sends to Cerebras and updates cache.
 
 ---
 
-## 📦 What's Included
+## Quick Start (Windows)
 
-- ✅ **3 Dockerfiles** (Frontend, Backend, Gateway)
-- ✅ **docker-compose.yml** - Orchestrates all services
-- ✅ **MCP Gateway** - Custom network-aware router
-- ✅ **Local Model** - Llama 2 7B (4-bit quantized)
-- ✅ **Auto-detection** - No manual mode switching
-- ✅ **Health checks** - Automatic service recovery
-- ✅ **Complete documentation**
+> These commands assume Docker Desktop is installed.
 
----
+1. Copy `.env.example` to `.env` and fill values (see env section below).
+2. Download pre-quantized local model with `scripts\setup.bat` (one-time ~4GB).
+3. Start containers:
 
-## 🎯 Use Cases
+```powershell
+# first time (builds images)
+docker-compose up --build
 
-Perfect for:
-- 🌍 **Remote/Rural Areas** - Limited internet connectivity
-- ✈️ **Travel** - Unreliable mobile connections
-- 🏥 **Healthcare** - Privacy-sensitive environments
-- 🎓 **Education** - Schools with poor connectivity
-- 🚢 **Maritime/Aviation** - Isolated environments
-- 💼 **Enterprise** - Air-gapped networks
-
----
-
-## 📊 System Requirements
-
-### Minimum
-- Docker Desktop installed
-- 8 GB RAM
-- 15 GB free disk space
-- Windows 10/11, macOS, or Linux
-
-### Recommended
-- 16 GB RAM
-- 20 GB free disk space (SSD preferred)
-- 4+ CPU cores
-
----
-
-## 🧪 Testing Network Switching
-
-1. Start the app with internet connection
-2. Send a message → Uses **Cerebras** (fast response)
-3. Disable WiFi/Internet
-4. Send another message → Automatically switches to **Local Model**
-5. Re-enable internet → Switches back to **Cerebras**
-6. Previous offline messages auto-enhance ✨
-
-**No manual toggle needed!**
-
----
-
-## 📝 Commands
-
-```bash
-# Start application
-docker-compose up
-
-# Start in background
+# or to run in background
 docker-compose up -d
 
-# Stop application
+# to stop
 docker-compose down
+```
 
-# View logs
-docker-compose logs -f
+4. Open `http://localhost:5173` to view the frontend.
+5. Test: send a message while online (Cerebras), then disable Wi‑Fi and send another message to see local fallback.
 
-# Rebuild after changes
-docker-compose up --build
+**See `QUICKSTART.md` for a step-by-step with screenshots and troubleshooting tips.**
+
+---
+
+## Repo layout (recommended)
+
+```
+/ (root)
+├── README.md
+├── QUICKSTART.md
+├── FOR_JUDGES.md
+├── CONTRIBUTING.md
+├── ARCHITECTURE.md
+├── DEPLOYMENT.md
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── frontend/       # React + Vite app
+├── backend/        # FastAPI app
+├── mcp-gateway/    # Router + enhancement queue
+├── local-model/    # llama-cpp-python wrapper / model server
+├── scripts/        # setup.bat, start.bat, download_model.py
+├── docs/           # supporting docs and assets
+└── LICENSE
 ```
 
 ---
 
-## 🤝 Contributing
+## Environment & `.env` example
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+Create `.env` at repo root (never commit credentials).
+
+```
+# Cerebras
+CEREBRAS_API_KEY=your_cerebras_api_key_here
+CEREBRAS_API_URL=https://api.cerebras.ai/v1
+
+# Ports
+FRONTEND_PORT=5173
+BACKEND_PORT=8000
+MCP_GATEWAY_PORT=8080
+
+# Local model
+LOCAL_MODEL_PATH=./models/llama2-7b.gguf
+MODEL_CACHE_DIR=./cache
+
+# Misc
+ENABLE_ENHANCER=true
+METADATA_DB_URL=sqlite:///./metadata.db   # or mongodb://...
+```
+
+**Important**: Add `models/` and `.env` to `.gitignore`.
 
 ---
 
-## 📄 License
+## Docker & Deployment
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+* Each service has its own `Dockerfile`.
+* `docker-compose.yml` orchestrates them and sets up healthchecks.
+
+**Minimal `docker-compose.yml` (conceptual)**
+
+```yaml
+version: '3.8'
+services:
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mcp-gateway
+  mcp-gateway:
+    build: ./mcp-gateway
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./cache:/app/cache
+  local-model:
+    build: ./local-model
+    volumes:
+      - ./models:/models
+    environment:
+      - MODEL_PATH=/models/llama2-7b.gguf
+```
+
+**Tips**
+
+* Use `--gpus` or accelerator flags only if hardware available. For hackathon/demo, use CPU quantized model.
+* Keep healthcheck endpoints on `/health` for each service so Docker Compose can auto-restart failures.
 
 ---
 
-## 👥 Team Cyber_Samurais
+## MCP Gateway API contract (suggested endpoints)
 
-Built for **WeMakeDevs FutureStack GenAI Hackathon 2025**
+```
+POST /api/v1/query
+Request: { session_id?, query: string, context? }
+Response: { id, answer, provider: "online" | "offline", score?, timestamp }
+
+GET /api/v1/status
+Response: { online: true|false, providers: { cerebras: status, local: status } }
+
+GET /api/v1/logs?session_id=
+Response: [{ id, query, provider, timestamp, enhanced: true|false }]
+
+POST /api/v1/enhance
+Request: { id }  # manually trigger re-enhance of an offline response
+```
+
+Include schema examples in `mcp-gateway/openapi.yaml` (auto-generated by FastAPI).
 
 ---
 
-## 🙏 Acknowledgments
+## For Judges — Demo checklist (FOR_JUDGES.md)
 
-- **Cerebras** for the lightning-fast AI API
-- **Meta** for the Llama 2 model
-- **Docker** for containerization technology
-- **FastAPI** & **React** communities
+**Goal**: show offline fallback + online enhancement in under 3 minutes.
+
+1. Pre-demo: run `scripts/setup.bat` to download model and set `.env`.
+2. Start app: `docker-compose up --build -d`.
+3. Demo scenario:
+
+   * Show app online: ask a complex question → highlight `provider: Cerebras` and fast result.
+   * Turn off Wi‑Fi (or run `scripts/simulate_offline.bat`) → ask same question → show `provider: Local`.
+   * Turn Wi‑Fi back on → open logs/notifications → show that the offline answer was enhanced and updated.
+4. Show MCP logs & enhancement queue dashboard (simple UI or `curl` output).
+5. Point judges to `/docs` for architecture and to `FOR_JUDGES.md` for reproducible steps.
+
+**Judge tips included**: timeline (1 min online, 1 min offline, 1 min enhancement) and required artifacts (pre-downloaded model, valid API key).
 
 ---
 
-**Made with ❤️ to bridge the digital divide**
+## Contributing
+
+* Branching: `feature/<short-desc>`, `fix/<short-desc>`
+* PRs: small, 1 feature per PR, include screenshots or recordings if UI changes
+* CI: run `pytest` for Python and `npm test` for frontend
+* Issue templates + PR template included in `.github/` folder
+
+See `CONTRIBUTING.md` for full templates and reviewer checklist.
+
+---
+
+## Tests & Monitoring
+
+* Unit tests for backend and mcp-gateway (pytest)
+* Integration tests: end-to-end query routing (use TestClient in FastAPI)
+* Smoke test for model server (inference request)
+* Health endpoints for Prometheus scrape (optional)
+
+---
+
+## Security & Privacy
+
+* Never commit model files or `.env` to Git. Add them to `.gitignore`.
+* Provide an offline-privacy toggle in UI: `Use offline only` (forces local provider).
+* Log only metadata — avoid storing PII or raw user messages unless consented. If stored, ensure encryption at rest.
+
+---
+
+## Assets for documentation (what to include in `/docs/assets`)
+
+* UI screenshots (online / offline badges)
+* GIF showing online→offline→enhancement flow
+* Architecture diagrams (Mermaid + PNG export)
+* Sample JSON request/response logs
+* `FOR_JUDGES_demo_script.md` (one-page script for presenting)
+* Small demo dataset used for RAG (preload) — include source and license
+
+---
+
+## License & Acknowledgements
+
+This project is released under the **MIT License**. See `LICENSE`.
+
+Acknowledgements: Cerebras, Meta (LLaMA), Docker, FastAPI, Vite, the OSS communities used.
+
+---
+
+## Next steps (for repo maintainer)
+
+1. Add `.env.example` and `.gitignore`.
+2. Add `scripts/setup.*` that downloads model to `models/` and preloads demo docs.
+3. Implement FastAPI backend and the MCP gateway skeleton with routes above.
+4. Implement simple React frontend with network indicator and query UI.
+5. Create `FOR_JUDGES.md` with exact demo script and timings.
+
+---
+
+*Generated from project details and initial plan report provided.*
