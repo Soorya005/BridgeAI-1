@@ -64,22 +64,15 @@ This README is the canonical GitHub entry for the project; additional documentat
 ## Architecture & Workflow
 
 ### Flowchart (Mermaid)
-
 ```mermaid
 flowchart TD
-  A[User (Browser)] --> B[Frontend (React + Vite)]
-  B --> C[MCP Gateway (HTTP:8080)]
-  C -->|internet available| D[Cerebras API (cloud)]
-  C -->|no internet| E[Local Model (llama-2/gguf)]
-  D --> F[Response & Cache]
-  E --> F
-  F --> B
-  F --> G[Metadata store (cache/logs)]
-  G --> C
-  C --> H[Enhancer Worker]
-  H --> D
-  H --> G
-```
+    A[User Query] --> B[MCP Gateway]
+    B -->|Online Available| C[Cerebras API]
+    B -->|Offline| D[LLaMA Local Model]
+    C --> E[Response & Metadata Logged]
+    D --> E[Response & Metadata Logged]
+    E --> F[User Receives Answer]
+
 
 ### Sequence (brief)
 
@@ -304,4 +297,4 @@ Acknowledgements: Cerebras, Meta (LLaMA), Docker, FastAPI, Vite, the OSS communi
 
 ---
 
-*Generated from project details and initial plan report provided.*
+
