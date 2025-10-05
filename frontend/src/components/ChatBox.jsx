@@ -359,6 +359,12 @@ export default function ChatBox() {
         const bufferContent = updateBuffer;
         updateBuffer = "";
         setMessages((prev) => {
+          // CRITICAL FIX: Check if the message still exists (prevents crash when clearing mid-generation)
+          if (assistantMessageIndex >= prev.length) {
+            console.warn('Message index out of bounds, chat may have been cleared');
+            return prev;
+          }
+          
           const updated = [...prev];
           updated[assistantMessageIndex] = {
             role: "assistant",
@@ -389,6 +395,12 @@ export default function ChatBox() {
           // Fallback callback - flush buffer and update source to offline
           flushBuffer();
           setMessages((prev) => {
+            // CRITICAL FIX: Check if the message still exists
+            if (assistantMessageIndex >= prev.length) {
+              console.warn('Message index out of bounds during fallback, chat may have been cleared');
+              return prev;
+            }
+            
             const updated = [...prev];
             updated[assistantMessageIndex] = {
               ...updated[assistantMessageIndex],
@@ -408,6 +420,12 @@ export default function ChatBox() {
       if (err.name === 'AbortError') {
         // Update the message to show it was stopped
         setMessages((prev) => {
+          // CRITICAL FIX: Check if the message still exists
+          if (assistantMessageIndex >= prev.length) {
+            console.warn('Message index out of bounds during abort, chat may have been cleared');
+            return prev;
+          }
+          
           const updated = [...prev];
           updated[assistantMessageIndex] = {
             role: "assistant",
@@ -418,6 +436,12 @@ export default function ChatBox() {
         });
       } else {
         setMessages((prev) => {
+          // CRITICAL FIX: Check if the message still exists
+          if (assistantMessageIndex >= prev.length) {
+            console.warn('Message index out of bounds during error, chat may have been cleared');
+            return prev;
+          }
+          
           const updated = [...prev];
           updated[assistantMessageIndex] = {
             role: "assistant",
@@ -442,8 +466,29 @@ export default function ChatBox() {
   };
 
   const handleClear = async () => {
+    // CRITICAL FIX: Abort any ongoing generation before clearing
+    if (abortController) {
+      console.log('Aborting ongoing generation before clearing chat');
+      abortController.abort();
+      setAbortController(null);
+    }
+    
+    // Reset generation state
+    setIsGenerating(false);
+    
+    // Clear the chat on backend
     await clearChat(sessionId);
+    
+    // Clear all state
     setMessages([]);
+    setEnhancementQueue(new Set());
+    setEnhancingMessages(new Set());
+    enhancementLockRef.current.clear();
+    
+    // Clear notifications
+    setNotifications([]);
+    
+    toast.success('Chat cleared', { icon: '🗑️' });
   };
 
   return (

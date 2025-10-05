@@ -5,7 +5,7 @@ export default function NotificationProvider({ isDarkTheme }) {
     <Toaster
       position="top-right"
       toastOptions={{
-        duration: 4000,
+        duration: 1000,
         style: {
           background: isDarkTheme ? '#1f2937' : '#ffffff',
           color: isDarkTheme ? '#f3f4f6' : '#111827',
